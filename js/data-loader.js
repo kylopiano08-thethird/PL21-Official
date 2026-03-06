@@ -1,6 +1,6 @@
-// js/data-loader.js - COMPLETE INTELLIGENT DATA LOADER
+// js/data-loader.js - COMPLETE INTELLIGENT DATA LOADER with Vercel proxy
 const SHEET_ID = '1ECRV_5PiAFGBx9lfgKU_ZYdRSgUG4OpTEm9YzrxBvMI';
-const PROXY = 'https://corsproxy.io/?';
+// No external proxy needed - using our own Vercel function
 
 // Function to parse CSV text properly
 function parseCSV(csvText) {
@@ -69,17 +69,16 @@ function parseCSV(csvText) {
 async function fetchSheetAsCSV(sheetName) {
     try {
         const cacheBuster = Date.now();
-        const url = `${PROXY}https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&cb=${cacheBuster}`;
+        // Use our own Vercel function
+        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&cb=${cacheBuster}`;
         
-        console.log(`📡 Fetching ${sheetName} as CSV...`);
+        console.log(`📡 Fetching ${sheetName} as CSV via proxy...`);
         
-        const res = await fetch(url, {
-            headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            }
-        });
+        const res = await fetch(url);
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
         
         const csvText = await res.text();
         return parseCSV(csvText);
@@ -89,24 +88,21 @@ async function fetchSheetAsCSV(sheetName) {
     }
 }
 
-// Keep the original for sheets that work with JSON
 async function fetchSheetAsJSON(sheetName) {
     try {
         const cacheBuster = Date.now();
-        const url = `${PROXY}https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&cb=${cacheBuster}`;
+        // Use our own Vercel function
+        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=json&cb=${cacheBuster}`;
         
-        console.log(`📡 Fetching ${sheetName} as JSON...`);
+        console.log(`📡 Fetching ${sheetName} as JSON via proxy...`);
         
-        const res = await fetch(url, {
-            headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            }
-        });
+        const res = await fetch(url);
         
-        const text = await res.text();
-        const json = JSON.parse(text.substring(47).slice(0, -2));
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const json = await res.json();
         const cols = json.table.cols.map(c => c.label || '');
         const rows = json.table.rows;
         
@@ -134,8 +130,10 @@ async function fetchSheet(sheetName) {
     }
     
     // Try JSON first, fall back to CSV
+    console.log(`🔧 Trying JSON for ${sheetName}...`);
     const jsonData = await fetchSheetAsJSON(sheetName);
     if (jsonData && jsonData.length > 0) {
+        console.log(`✅ ${sheetName} loaded via JSON (${jsonData.length} rows)`);
         return jsonData;
     }
     
@@ -149,7 +147,27 @@ function getFlagEmoji(country) {
         'American': '🇺🇸',
         'French': '🇫🇷',
         'Serbian': '🇷🇸',
-        'Serbia': '🇷🇸'
+        'Serbia': '🇷🇸',
+        'Dutch': '🇳🇱',
+        'German': '🇩🇪',
+        'Italian': '🇮🇹',
+        'Spanish': '🇪🇸',
+        'Finnish': '🇫🇮',
+        'Australian': '🇦🇺',
+        'Canadian': '🇨🇦',
+        'Japanese': '🇯🇵',
+        'Mexican': '🇲🇽',
+        'Brazilian': '🇧🇷',
+        'New Zealander': '🇳🇿',
+        'Irish': '🇮🇪',
+        'Belgian': '🇧🇪',
+        'Austrian': '🇦🇹',
+        'Swiss': '🇨🇭',
+        'Swedish': '🇸🇪',
+        'Danish': '🇩🇰',
+        'Polish': '🇵🇱',
+        'Hungarian': '🇭🇺',
+        'Portuguese': '🇵🇹'
     };
     return flags[country] || '🏁';
 }
