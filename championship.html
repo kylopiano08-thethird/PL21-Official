@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PL21 - Championship</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/championship.css">
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="index.html" class="logo">
+                <img src="https://i.postimg.cc/nzCPbCtx/PL21-no-background.png" alt="PL21 Logo" class="logo-image">
+            </a>
+            <div class="countdown-container" id="countdown-container" style="display: none;">
+                <span class="countdown-label">NEXT RACE</span>
+                <span class="countdown-timer" id="countdown-timer">--d --h --m</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">HOME</a>
+                <a href="championship.html">CHAMPIONSHIP</a>
+                <a href="results.html">RESULTS</a>
+                <a href="stats.html">STATS</a>
+                <a href="calendar.html">CALENDAR</a>
+                <a href="teams.html">TEAMS</a>
+            </div>
+        </nav>
+
+        <div class="page-header">
+            <div class="page-eyebrow">2021 SEASON</div>
+            <h1 class="page-title">CHAMPIONSHIP <span>STANDINGS</span></h1>
+        </div>
+
+        <div class="loading" id="loading">Loading championship data...</div>
+
+        <div id="content" style="display: none;">
+            <!-- Podium Section -->
+            <div class="podium-section">
+                <div class="podium-title">CURRENT PODIUM</div>
+                <div class="podium-grid" id="podium-grid"></div>
+            </div>
+
+            <!-- View Toggle -->
+            <div class="view-toggle">
+                <button class="view-toggle-btn active" data-view="table">TABLE VIEW</button>
+                <button class="view-toggle-btn" data-view="graph">GRAPH VIEW</button>
+            </div>
+
+            <!-- Table View -->
+            <div id="table-view" class="view-content active">
+                <div class="standings-container">
+                    <div class="standings-header">
+                        <h2 class="standings-title">Driver Standings</h2>
+                        <div class="standings-tabs"></div>
+                    </div>
+
+                    <table class="standings-table">
+                        <thead>
+                            <tr>
+                                <th>POS</th>
+                                <th>DRIVER</th>
+                                <th>TEAM</th>
+                                <th>WINS</th>
+                                <th>PODIUMS</th>
+                                <th>POLES</th>
+                                <th>GAP</th>
+                                <th>PTS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="standings-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Graph View -->
+            <div id="graph-view" class="view-content">
+                <div class="graph-container">
+                    <div class="graph-header">
+                        <h2 class="graph-title">POINTS PROGRESSION</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="points-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <span>PL21 Virtual Racing League — 2021 Season</span>
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+                <a href="#">Rules</a>
+                <a href="#">Standings</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/data-loader.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/championship.js"></script>
+    <script src="js/countdown.js"></script>
+</body>
+</html>

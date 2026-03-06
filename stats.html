@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PL21 - Statistics Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/stats.css">
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="index.html" class="logo">
+                <img src="https://i.postimg.cc/nzCPbCtx/PL21-no-background.png" alt="PL21 Logo" class="logo-image">
+            </a>
+            <div class="countdown-container" id="countdown-container" style="display: none;">
+                <span class="countdown-label">NEXT RACE</span>
+                <span class="countdown-timer" id="countdown-timer">--d --h --m</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">HOME</a>
+                <a href="championship.html">CHAMPIONSHIP</a>
+                <a href="results.html">RESULTS</a>
+                <a href="stats.html">STATS</a>
+                <a href="calendar.html">CALENDAR</a>
+                <a href="teams.html">TEAMS</a>
+            </div>
+        </nav>
+
+        <div class="page-header">
+            <div class="page-eyebrow">2021 SEASON</div>
+            <h1 class="page-title">STATISTICS <span>HUB</span></h1>
+        </div>
+
+        <div class="loading" id="loading">Loading statistics...</div>
+
+        <div id="content" style="display: none;">
+            <div class="stats-nav">
+                <div class="stats-nav-item active" data-tab="overview">OVERVIEW</div>
+                <div class="stats-nav-item" data-tab="drivers">DRIVERS</div>
+                <div class="stats-nav-item" data-tab="teams">TEAMS</div>
+                <div class="stats-nav-item" data-tab="comparison">COMPARISON</div>
+            </div>
+
+            <div id="overview" class="tab-content active">
+                <div class="overview-grid"></div>
+                <div class="stats-grid">
+                    <div class="stat-panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Most Wins</h3>
+                            <a href="#" class="panel-link">VIEW ALL →</a>
+                        </div>
+                        <div class="leader-table"></div>
+                    </div>
+                    <div class="stat-panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Most Podiums</h3>
+                            <a href="#" class="panel-link">VIEW ALL →</a>
+                        </div>
+                        <div class="leader-table"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="drivers" class="tab-content">
+                <div class="driver-selector"></div>
+                <div id="driver-deepdive-container"></div>
+            </div>
+
+            <div id="teams" class="tab-content">
+                <div class="team-selector"></div>
+                <div id="team-profiles-container"></div>
+            </div>
+
+            <div id="comparison" class="tab-content">
+                <div class="stat-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">COMPREHENSIVE DRIVER STATISTICS</h3>
+                        <span class="panel-link">2021 SEASON</span>
+                    </div>
+                    <table class="stats-table" id="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>POS</th>
+                                <th>DRIVER</th>
+                                <th>TEAM</th>
+                                <th>PTS</th>
+                                <th>RATING</th>
+                                <th>WINS</th>
+                                <th>PODIUMS</th>
+                                <th>POLES</th>
+                                <th>FL</th>
+                                <th>RACES</th>
+                                <th>PTS/RACE</th>
+                                <th>AVG FIN</th>
+                                <th>AVG QUALI</th>
+                                <th>DNF</th>
+                                <th>LED %</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <span>PL21 Virtual Racing League — 2021 Season</span>
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+                <a href="#">Rules</a>
+                <a href="#">Standings</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/data-loader.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/countdown.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PL21 - Calendar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/calendar.css">
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="index.html" class="logo">
+                <img src="https://i.postimg.cc/nzCPbCtx/PL21-no-background.png" alt="PL21 Logo" class="logo-image">
+            </a>
+            <div class="countdown-container" id="countdown-container" style="display: none;">
+                <span class="countdown-label">NEXT RACE</span>
+                <span class="countdown-timer" id="countdown-timer">--d --h --m</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">HOME</a>
+                <a href="championship.html">CHAMPIONSHIP</a>
+                <a href="results.html">RESULTS</a>
+                <a href="stats.html">STATS</a>
+                <a href="calendar.html">CALENDAR</a>
+                <a href="teams.html">TEAMS</a>
+            </div>
+        </nav>
+        
+
+        <div class="page-header">
+            <div class="page-eyebrow">2021 SEASON</div>
+            <h1 class="page-title">RACE <span>CALENDAR</span></h1>
+        </div>
+
+        <div class="loading" id="loading">Loading calendar...</div>
+
+        <div id="content" style="display: none;">
+            <div class="map-wrapper" id="map-wrapper">
+                <div id="map"></div>
+                
+                <div class="map-sidebar hidden" id="map-sidebar">
+                    <div class="sidebar-header">
+                        <span class="sidebar-title">Race Details</span>
+                        <button class="close-sidebar" id="close-sidebar">✕</button>
+                    </div>
+                    <div id="sidebar-content"></div>
+                </div>
+                
+                <div class="border-overlay">
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#0024dc" stop-opacity="0.8">
+                                    <animate attributeName="stop-color" values="#0024dc;#860000;#0024dc" dur="8s" repeatCount="indefinite" />
+                                </stop>
+                                <stop offset="50%" stop-color="#860000" stop-opacity="0.8">
+                                    <animate attributeName="stop-color" values="#860000;#0024dc;#860000" dur="8s" repeatCount="indefinite" />
+                                </stop>
+                                <stop offset="100%" stop-color="#0024dc" stop-opacity="0.8">
+                                    <animate attributeName="stop-color" values="#0024dc;#860000;#0024dc" dur="8s" repeatCount="indefinite" />
+                                </stop>
+                            </linearGradient>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#borderGradient)" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="calendar-list" id="calendar-list"></div>
+        </div>
+
+        <footer>
+            <span>PL21 Virtual Racing League — 2021 Season</span>
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+                <a href="#">Rules</a>
+                <a href="#">Standings</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/data-loader.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/calendar.js"></script>
+    <script src="js/countdown.js"></script>
+</body>
+</html>

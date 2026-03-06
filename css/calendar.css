@@ -1,0 +1,417 @@
+/* css/calendar.css */
+.map-wrapper {
+    position: relative;
+    width: 100%;
+    margin: 2rem 0 3rem;
+    background: #0a0a0a;
+    border-radius: 24px;
+    padding: 2rem;
+    border: 1px solid #222;
+    overflow: hidden;
+    perspective: 1200px;
+    margin-top: 3rem;
+    margin-bottom: 4rem;
+}
+
+#map { 
+    height: 650px;
+    width: 110%;
+    background: #0a0a0a;
+    border-radius: 16px;
+    z-index: 1;
+    transition: transform 0.1s ease-out;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transform: rotateX(15deg) rotateY(2deg) scale(1.08);
+    margin-top: -50px;
+    margin-bottom: -25px;
+    margin-left: -5%;
+    pointer-events: none;
+}
+
+.leaflet-marker-pane,
+.leaflet-popup-pane {
+    pointer-events: auto !important;
+}
+
+.leaflet-container {
+    background: #0a0a0a;
+}
+
+.leaflet-control-attribution,
+.leaflet-control-zoom,
+.leaflet-control {
+    display: none !important;
+}
+
+.border-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    mix-blend-mode: overlay;
+    opacity: 0.6;
+}
+
+.map-sidebar {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    width: 380px;
+    max-height: calc(650px - 4rem);
+    overflow-y: auto;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid #222;
+    padding: 1.5rem;
+    z-index: 100;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #ff3333 #222;
+}
+
+.map-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.map-sidebar::-webkit-scrollbar-track {
+    background: #222;
+    border-radius: 3px;
+}
+
+.map-sidebar::-webkit-scrollbar-thumb {
+    background: #ff3333;
+    border-radius: 3px;
+}
+
+.map-sidebar.hidden {
+    opacity: 0;
+    transform: translateX(20px);
+    pointer-events: none;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #222;
+    margin-bottom: 1.5rem;
+}
+
+.sidebar-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #0024dc, #ff3333);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-family: 'Archivo', sans-serif;
+}
+
+.close-sidebar {
+    background: none;
+    border: 1px solid #333;
+    color: #777;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1.2rem;
+}
+
+.close-sidebar:hover {
+    border-color: #ff3333;
+    color: #ff3333;
+    transform: rotate(90deg);
+}
+
+.race-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.race-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.race-round-badge {
+    background: rgba(255, 51, 51, 0.1);
+    color: #ff3333;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 51, 51, 0.2);
+}
+
+.race-status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-completed {
+    background: rgba(0, 255, 136, 0.15);
+    color: #00ff88;
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.status-next {
+    background: rgba(212, 175, 55, 0.15);
+    color: #D4AF37;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.status-upcoming {
+    background: rgba(255, 51, 51, 0.15);
+    color: #ff3333;
+    border: 1px solid rgba(255, 51, 51, 0.3);
+}
+
+.race-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+    font-family: 'Archivo', sans-serif;
+}
+
+.race-location {
+    color: #777;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #222;
+}
+
+.race-description {
+    color: #aaa;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    padding: 0.75rem;
+    background: #0f0f0f;
+    border-radius: 12px;
+    border-left: 3px solid #ff3333;
+    margin: 0.25rem 0;
+}
+
+.circuit-image-wrapper {
+    margin: 0.5rem 0 1rem;
+    background: #0a0a0a;
+    border-radius: 16px;
+    border: 1px solid #222;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.circuit-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+    border-bottom: 1px solid #222;
+}
+
+.circuit-image:hover {
+    transform: scale(1.05);
+}
+
+.circuit-image-caption {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: #ff3333;
+    font-weight: 600;
+    text-align: center;
+    background: #0f0f0f;
+    letter-spacing: 0.5px;
+    border-top: 1px solid #222;
+}
+
+.race-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    background: #0f0f0f;
+    border-radius: 12px;
+    padding: 1.2rem;
+    border: 1px solid #222;
+    margin: 0.5rem 0;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 0.25rem;
+}
+
+.stat-label {
+    color: #777;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.3rem;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Status-specific stat values */
+.status-completed .stat-value,
+[data-status="completed"] .stat-value {
+    color: #00ff88;
+}
+
+.status-next .stat-value,
+[data-status="next"] .stat-value {
+    color: #D4AF37;
+}
+
+.status-upcoming .stat-value,
+[data-status="upcoming"] .stat-value {
+    color: #ff3333;
+}
+
+.calendar-list {
+    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+.calendar-item {
+    background: #0a0a0a;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid #222;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.calendar-item:hover {
+    border-color: #ff3333;
+    background: #0f0f0f;
+    transform: translateY(-2px);
+}
+
+.calendar-item.active {
+    border-color: #0024dc;
+    background: rgba(0, 36, 220, 0.1);
+}
+
+.calendar-round {
+    font-size: 0.7rem;
+    font-weight: 600;
+    min-width: 40px;
+}
+
+/* Status-specific round colors */
+.calendar-item[data-status="completed"] .calendar-round {
+    color: #00ff88;
+}
+
+.calendar-item[data-status="next"] .calendar-round {
+    color: #D4AF37;
+}
+
+.calendar-item[data-status="upcoming"] .calendar-round {
+    color: #ff3333;
+}
+
+.calendar-info {
+    flex: 1;
+}
+
+.calendar-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.calendar-date {
+    color: #777;
+    font-size: 0.65rem;
+}
+
+.calendar-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.dot-completed { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+.dot-next { background: #D4AF37; box-shadow: 0 0 10px #D4AF37; }
+.dot-upcoming { background: #ff3333; box-shadow: 0 0 10px #ff3333; }
+
+@keyframes pulse-green {
+    0% { r: 6; filter: drop-shadow(0 0 5px #00ff88); }
+    50% { r: 8; filter: drop-shadow(0 0 20px #00ff88); }
+    100% { r: 6; filter: drop-shadow(0 0 5px #00ff88); }
+}
+
+@keyframes pulse-gold {
+    0% { r: 8; filter: drop-shadow(0 0 10px #D4AF37); }
+    50% { r: 11; filter: drop-shadow(0 0 30px #D4AF37); }
+    100% { r: 8; filter: drop-shadow(0 0 10px #D4AF37); }
+}
+
+@keyframes pulse-red {
+    0% { r: 6; filter: drop-shadow(0 0 5px #ff3333); }
+    50% { r: 8; filter: drop-shadow(0 0 20px #ff3333); }
+    100% { r: 6; filter: drop-shadow(0 0 5px #ff3333); }
+}
+
+.pulse-marker-completed { animation: pulse-green 2s ease infinite; }
+.pulse-marker-next { animation: pulse-gold 2s ease infinite; }
+.pulse-marker-upcoming { animation: pulse-red 2s ease infinite; }
+
+@media (max-width: 1024px) {
+    .calendar-list {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .map-sidebar {
+        width: 320px;
+        right: 1rem;
+        top: 1rem;
+    }
+    #map {
+        height: 550px;
+    }
+}
+
+@media (max-width: 768px) {
+    .calendar-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    #map {
+        height: 450px;
+    }
+    .map-sidebar {
+        width: 280px;
+        right: 0.5rem;
+        top: 0.5rem;
+    }
+    .circuit-image {
+        height: 150px;
+    }
+}

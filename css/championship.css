@@ -1,0 +1,727 @@
+/* css/championship.css */
+
+/* Podium Section - NEW STYLING */
+.podium-section {
+    margin: 2rem 0 4rem;
+    animation: fadeUp 1s ease 0.3s both;
+}
+
+.podium-title {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #777;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 600;
+    font-family: 'Archivo', sans-serif;
+}
+
+.podium-grid {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.podium-item {
+    flex: 1;
+    text-align: center;
+    position: relative;
+}
+
+.podium-item.first { order: 2; }
+.podium-item.second { order: 1; }
+.podium-item.third { order: 3; }
+
+.podium-position {
+    font-size: 0.9rem;
+    color: #777;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+}
+
+.podium-card {
+    background: #0f0f0f;
+    border-radius: 24px 24px 8px 8px;
+    padding: 2rem 1.5rem;
+    position: relative;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: all 0.3s ease;
+}
+
+.podium-item.first .podium-card {
+    padding: 3rem 2rem;
+}
+
+.podium-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #0024dc, #860000, #0024dc);
+    border-radius: 25px 25px 9px 9px;
+    background-size: 400% 400%;
+    z-index: -1;
+    animation: podiumBorder 20s ease infinite;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 2px;
+    opacity: 0.3;
+}
+
+.podium-item.first .podium-card::before {
+    opacity: 0.6;
+    animation: podiumBorder 15s ease infinite;
+}
+
+@keyframes podiumBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.podium-number {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 3px 3px 0 #0024dc, 6px 6px 0 #860000;
+    line-height: 1;
+    margin-bottom: 1rem;
+    font-family: 'Archivo', sans-serif;
+}
+
+.podium-item.first .podium-number {
+    font-size: 4.5rem;
+    text-shadow: 4px 4px 0 #0024dc, 8px 8px 0 #860000;
+}
+
+.podium-name {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-family: 'Archivo', sans-serif;
+    color: #fff;
+}
+
+.podium-item.first .podium-name {
+    font-size: 2.1rem;
+}
+
+.podium-team {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.podium-points {
+    font-size: 1.3rem;
+    color: #860000;
+    font-weight: 700;
+}
+
+.podium-item.first .podium-points {
+    font-size: 1.6rem;
+}
+
+/* Standings Container */
+.standings-container {
+    background: #0f0f0f;
+    border-radius: 24px;
+    padding: 2rem;
+    margin: 2rem 0 4rem;
+    position: relative;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.standings-container::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #0024dc, #860000, #0024dc, #860000);
+    border-radius: 25px;
+    background-size: 400% 400%;
+    z-index: -1;
+    animation: containerBorder 30s ease infinite;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 2px;
+    opacity: 0.2;
+}
+
+@keyframes containerBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Standings Header */
+.standings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #222;
+}
+
+.standings-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    font-family: 'Archivo', sans-serif;
+    margin: 0;
+}
+
+/* Tab Buttons */
+.standings-tabs {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    font-weight: 600;
+    font-family: 'Archivo', sans-serif;
+}
+
+.tab-btn:hover {
+    color: #fff;
+    background: #1a1a1a;
+}
+
+.tab-btn.active {
+    color: #fff;
+    background: #1a1a1a;
+    position: relative;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+.tab-btn.active::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    background: linear-gradient(45deg, #0024dc, #860000);
+    border-radius: 9px;
+    z-index: -1;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 1px;
+    opacity: 0.5;
+}
+
+/* Standings Table */
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.standings-table th {
+    text-align: left;
+    padding: 1rem 0.75rem;
+    color: #777;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid #222;
+    font-family: 'Archivo', sans-serif;
+}
+
+.standings-table td {
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid #1a1a1a;
+    transition: background 0.2s ease;
+    font-size: 0.95rem;
+}
+
+.standings-table tr:hover td {
+    background: #151515;
+}
+
+.position-cell {
+    font-weight: 700;
+    width: 60px;
+    font-size: 1rem;
+}
+
+.position-1 { color: #ffd700; }
+.position-2 { color: #c0c0c0; }
+.position-3 { color: #cd7f32; }
+
+.driver-cell {
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+}
+
+.driver-color-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.team-cell {
+    font-size: 0.9rem;
+    color: #777;
+}
+
+.wins-cell {
+    text-align: center;
+    color: #fff;
+    font-weight: 500;
+}
+
+.points-cell {
+    color: #860000;
+    font-weight: 700;
+    text-align: right;
+    font-size: 1rem;
+}
+
+.gap-cell {
+    color: #777;
+    text-align: right;
+    font-weight: 500;
+}
+
+/* Constructor team drivers cell */
+.constructor-drivers {
+    font-size: 0.85rem;
+    color: #777;
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+    .standings-table th:nth-child(5),
+    .standings-table td:nth-child(5),
+    .standings-table th:nth-child(6),
+    .standings-table td:nth-child(6) {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .podium-grid {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .podium-item.first { order: 1; }
+    .podium-item.second { order: 2; }
+    .podium-item.third { order: 3; }
+    
+    .standings-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .standings-table th:nth-child(4),
+    .standings-table td:nth-child(4),
+    .standings-table th:nth-child(7),
+    .standings-table td:nth-child(7) {
+        display: none;
+    }
+    
+    .standings-tabs {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .standings-table th:nth-child(3),
+    .standings-table td:nth-child(3) {
+        display: none;
+    }
+    
+    .standings-table td {
+        padding: 1rem 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .driver-cell {
+        gap: 0.5rem;
+    }
+}
+/* Standings Table - fix alignment */
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.standings-table th {
+    text-align: left;
+    padding: 1rem 0.75rem;
+    color: #777;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid #222;
+    font-family: 'Archivo', sans-serif;
+}
+
+/* Specific header alignments */
+.standings-table th:nth-child(7) { /* GAP column */
+    text-align: right;
+    padding-right: 1.5rem;
+}
+
+.standings-table th:nth-child(8) { /* PTS column */
+    text-align: right;
+}
+
+.standings-table td {
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid #1a1a1a;
+    transition: background 0.2s ease;
+    font-size: 0.95rem;
+}
+
+/* Cell alignments */
+.position-cell {
+    font-weight: 700;
+    width: 60px;
+    font-size: 1rem;
+    text-align: left;
+}
+
+.driver-cell {
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    text-align: left;
+}
+
+.team-cell {
+    font-size: 0.9rem;
+    color: #777;
+    text-align: left;
+}
+
+.wins-cell {
+    text-align: center;
+    color: #fff;
+    font-weight: 500;
+    width: 60px;
+}
+
+.gap-cell {
+    color: #777;
+    text-align: right;
+    font-weight: 500;
+    padding-right: 1.5rem !important;
+    width: 80px;
+}
+
+.points-cell {
+    color: #860000;
+    font-weight: 700;
+    text-align: right;
+    font-size: 1rem;
+    width: 70px;
+    padding-right: 1rem !important;
+}
+
+/* Constructor team drivers cell */
+.constructor-drivers {
+    font-size: 0.85rem;
+    color: #777;
+}
+
+/* Table row hover */
+.standings-table tr:hover td {
+    background: #151515;
+}
+/* Add to championship.css */
+
+/* View Toggle */
+.view-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.view-toggle-btn {
+    background: #0f0f0f;
+    border: 1px solid #222;
+    color: #777;
+    padding: 0.75rem 2rem;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Archivo', sans-serif;
+}
+
+.view-toggle-btn:hover {
+    border-color: #860000;
+    color: #fff;
+}
+
+.view-toggle-btn.active {
+    background: #860000;
+    color: #fff;
+    border-color: #860000;
+}
+
+/* View Content */
+.view-content {
+    display: none;
+}
+
+.view-content.active {
+    display: block;
+}
+
+/* Graph Container */
+.graph-container {
+    background: #0f0f0f;
+    border-radius: 24px;
+    padding: 2rem;
+    margin: 2rem 0;
+    border: 1px solid #222;
+}
+
+.graph-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.graph-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-family: 'Archivo', sans-serif;
+    color: #fff;
+}
+
+.graph-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.graph-select {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    color: #fff;
+    padding: 0.5rem;
+    border-radius: 8px;
+    min-width: 250px;
+    max-width: 300px;
+    font-size: 0.9rem;
+}
+
+.graph-select option {
+    background: #0a0a0a;
+    color: #fff;
+    padding: 0.5rem;
+}
+
+.graph-select[multiple] {
+    height: 120px;
+}
+
+.graph-btn {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    color: #777;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.graph-btn:hover {
+    border-color: #860000;
+    color: #fff;
+}
+
+.chart-container {
+    height: 400px;
+    margin: 2rem 0;
+    position: relative;
+}
+
+/* Graph Legend */
+.graph-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #222;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #0a0a0a;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.legend-item:hover {
+    border-color: #860000;
+    transform: translateY(-2px);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.legend-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.legend-points {
+    font-size: 0.8rem;
+    color: #860000;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .graph-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .graph-controls {
+        width: 100%;
+    }
+    
+    .graph-select {
+        max-width: none;
+        width: 100%;
+    }
+    
+    .chart-container {
+        height: 300px;
+    }
+    
+    .graph-legend {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .legend-item {
+        width: 100%;
+    }
+}
+/* Add to championship.css */
+
+/* Graph Tabs */
+.graph-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.graph-tab-btn {
+    background: #0f0f0f;
+    border: 1px solid #222;
+    color: #777;
+    padding: 0.5rem 2rem;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Archivo', sans-serif;
+}
+
+.graph-tab-btn:hover {
+    border-color: #860000;
+    color: #fff;
+}
+
+.graph-tab-btn.active {
+    background: #860000;
+    color: #fff;
+    border-color: #860000;
+}
+
+@media (max-width: 768px) {
+    .graph-tabs {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .graph-tab-btn {
+        width: 100%;
+        max-width: 300px;
+    }
+}
