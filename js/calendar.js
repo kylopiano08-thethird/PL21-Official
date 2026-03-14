@@ -67,8 +67,11 @@ function initializeCalendar() {
 function parseCoordinates(coordString) {
     if (!coordString) return null;
     
+    // Convert to string if it's not already
+    const coordStr = String(coordString).trim();
+    
     // Split by forward slash
-    const parts = coordString.split('/');
+    const parts = coordStr.split('/');
     if (parts.length === 2) {
         const lat = parseFloat(parts[0]);
         const lng = parseFloat(parts[1]);
@@ -76,6 +79,17 @@ function parseCoordinates(coordString) {
             return { lat, lng };
         }
     }
+    
+    // Try splitting by comma as fallback
+    const commaParts = coordStr.split(',');
+    if (commaParts.length === 2) {
+        const lat = parseFloat(commaParts[0]);
+        const lng = parseFloat(commaParts[1]);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            return { lat, lng };
+        }
+    }
+    
     return null;
 }
 
@@ -97,19 +111,30 @@ function setupCalendar(data) {
         console.log('📅 First race object:', races[0]);
         console.log('📅 First race circuitInfo:', races[0].circuitInfo);
         console.log('📅 First race circuitInfo.coordinates:', races[0].circuitInfo?.coordinates);
+        console.log('📅 First race coordinates field:', races[0].coordinates);
     }
     
     // Enhance races with parsed coordinates from circuitInfo
     const enhancedRaces = races.map(race => {
-        // Get coordinates from circuitInfo (where they're stored)
-        const coordinates = race.circuitInfo?.coordinates || '';
+        // Get coordinates from circuitInfo (where they're stored in data-loader)
+        const coordinates = race.circuitInfo?.coordinates || race.coordinates || '';
         const coords = parseCoordinates(coordinates);
+        
+        // Determine status based on current date (you can enhance this logic)
+        // For now, mark first 2 as completed, next as next, rest as upcoming
+        let status = 'upcoming';
+        if (race.round <= 2) {
+            status = 'completed';
+        } else if (race.round === 3) {
+            status = 'next';
+        }
         
         return {
             ...race,
             lat: coords ? coords.lat : null,
             lng: coords ? coords.lng : null,
             hasValidCoords: coords !== null,
+            status: status,
             // Also store the full circuit info for sidebar
             circuitName: race.circuitInfo?.circuitName || race.circuit || 'TBD',
             circuitLength: race.circuitInfo?.length || 'TBD',
@@ -131,7 +156,7 @@ function setupCalendar(data) {
         
         // Still show the map but with a default view
         initMapWithDefault();
-        buildCalendarList(enhancedRaces); // Use enhanced races which have circuitInfo
+        buildCalendarList(enhancedRaces);
         setupSidebar(enhancedRaces);
         setupParallax();
         
@@ -144,7 +169,7 @@ function setupCalendar(data) {
     }
     
     // Find next race (first upcoming race)
-    const nextRace = validRaces.find(race => race.status === 'upcoming') || validRaces[0];
+    const nextRace = validRaces.find(race => race.status === 'next') || validRaces[0];
     console.log('📅 Next race:', nextRace);
     
     // Initialize map
@@ -154,7 +179,7 @@ function setupCalendar(data) {
     addMarkers(validRaces);
     
     // Build calendar list
-    buildCalendarList(enhancedRaces); // Use all races for the list
+    buildCalendarList(enhancedRaces);
     
     // Setup sidebar
     setupSidebar(enhancedRaces);
@@ -165,12 +190,14 @@ function setupCalendar(data) {
     // Set initial view to next race
     if (nextRace) {
         setTimeout(() => {
-            map.setView([nextRace.lat, nextRace.lng], 4.5, { animate: false });
-            const nextRaceItem = document.querySelector(`[data-round="${nextRace.round}"]`);
-            if (nextRaceItem) {
-                nextRaceItem.classList.add('active');
-                clickedItem = nextRaceItem;
-                updateSidebar(nextRace);
+            if (nextRace.lat && nextRace.lng) {
+                map.setView([nextRace.lat, nextRace.lng], 4.5, { animate: false });
+                const nextRaceItem = document.querySelector(`[data-round="${nextRace.round}"]`);
+                if (nextRaceItem) {
+                    nextRaceItem.classList.add('active');
+                    clickedItem = nextRaceItem;
+                    updateSidebar(nextRace);
+                }
             }
         }, 500);
     }
@@ -228,8 +255,8 @@ function initMap(nextRace) {
     }
     
     map = L.map('map', {
-        center: nextRace ? [nextRace.lat, nextRace.lng] : [20, 0],
-        zoom: nextRace ? 4.5 : zoomedOut,
+        center: (nextRace && nextRace.lat && nextRace.lng) ? [nextRace.lat, nextRace.lng] : [20, 0],
+        zoom: (nextRace && nextRace.lat && nextRace.lng) ? 4.5 : zoomedOut,
         minZoom: zoomedOut,
         maxZoom: 8,
         zoomControl: false,
@@ -275,7 +302,7 @@ function addMarkers(races) {
             color = '#D4AF37';  // Gold/Yellow for next race
             pulseClass = 'pulse-marker-next';
         } else {
-            color = '#ff3333';  // Bright red for upcoming (changed from #860000)
+            color = '#ff3333';  // Bright red for upcoming
             pulseClass = 'pulse-marker-upcoming';
         }
         
@@ -430,17 +457,18 @@ function updateSidebar(race) {
     
     if (!sidebar || !sidebarContent) return;
     
-    // Get circuit info from race (now directly on the race object)
+    // Get circuit info from race
     const circuitName = race.circuitName || race.circuit || 'TBD';
     const length = race.circuitLength || race.length || 'TBD';
     const description = race.circuitDescription || race.description || '';
     const picture = race.circuitPicture || race.picture || '';
+    const record = race.circuitRecord || race.record || '';
     
     sidebarContent.innerHTML = `
         <div class="race-detail">
             <div class="race-header">
                 <span class="race-round-badge">ROUND ${race.round}</span>
-                <span class="race-status-badge status-${race.status}">${race.status.toUpperCase()}</span>
+                <span class="race-status-badge status-${race.status}">${race.status ? race.status.toUpperCase() : 'UPCOMING'}</span>
             </div>
             <div class="race-title">${race.name}</div>
             <div class="race-location">${race.location || 'TBD'}</div>
@@ -467,6 +495,12 @@ function updateSidebar(race) {
                     <div class="stat-label">Length</div>
                     <div class="stat-value">${length}</div>
                 </div>
+                ${record ? `
+                <div class="stat-item">
+                    <div class="stat-label">Lap Record</div>
+                    <div class="stat-value">${record}</div>
+                </div>
+                ` : ''}
             </div>
         </div>
     `;
