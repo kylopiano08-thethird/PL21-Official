@@ -608,7 +608,7 @@ async function loadAllData() {
                 const matches = dateValue.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
                 if (matches) {
                     const [_, year, month, day, hour, minute, second] = matches;
-                    timeStr = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+                    timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                 }
             }
             
@@ -643,36 +643,62 @@ async function loadAllData() {
             
             circuit = circuit || {};
             
-            // Determine status based on race results
+            // Determine status based on race results and date
             // Check if this round has any race results
+            const roundCol = `col${roundNum}`;
             const hasRaceResults = raceResults && raceResults.length > 0 && 
-                raceResults.some(row => row[`col${roundNum}`] && row[`col${roundNum}`] !== '');
+                raceResults.some(row => {
+                    // Check if this row has a result for this round
+                    const result = row[roundCol];
+                    return result && result.toString().trim() !== '';
+                });
             
             let status = 'upcoming';
+            
             if (hasRaceResults) {
+                // If there are results, mark as completed
                 status = 'completed';
+                console.log(`📅 Round ${roundNum} has race results - marking as completed`);
             } else {
                 // Check if the race date has passed
                 // Parse the date string (e.g., "8th March") into a Date object for comparison
-                // This is simplified - you might need to handle date parsing more robustly
-                const currentYear = new Date().getFullYear();
                 const dateParts = dateStr.match(/(\d+)(?:st|nd|rd|th)?\s+(\w+)/i);
                 if (dateParts) {
                     const day = parseInt(dateParts[1]);
                     const monthName = dateParts[2];
                     const months = {
                         'january': 0, 'february': 1, 'march': 2, 'april': 3, 'may': 4, 'june': 5,
-                        'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11
+                        'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11,
+                        'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
+                        'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
                     };
-                    const month = months[monthName.toLowerCase()];
+                    
+                    const monthNameLower = monthName.toLowerCase();
+                    const month = months[monthNameLower];
+                    
                     if (month !== undefined) {
+                        const currentYear = new Date().getFullYear();
                         const raceDate = new Date(currentYear, month, day);
+                        
                         // Add the time to the date for more accurate comparison
                         const [hours, minutes] = timeStr.split(':').map(Number);
                         raceDate.setHours(hours, minutes, 0, 0);
                         
-                        if (raceDate < currentDate) {
+                        // Log for debugging
+                        console.log(`📅 Round ${roundNum} date comparison:`, {
+                            raceDate: raceDate.toISOString(),
+                            currentDate: currentDate.toISOString(),
+                            isPast: raceDate < currentDate
+                        });
+                        
+                        // If the race date has passed AND we're at least 1 day past it, mark as completed
+                        // This gives a buffer for the same day
+                        const oneDayAfter = new Date(raceDate);
+                        oneDayAfter.setDate(oneDayAfter.getDate() + 1);
+                        
+                        if (currentDate > oneDayAfter) {
                             status = 'completed';
+                            console.log(`📅 Round ${roundNum} date (${raceDate.toISOString()}) has passed - marking as completed`);
                         }
                     }
                 }
@@ -691,7 +717,7 @@ async function loadAllData() {
                 status: status
             });
             
-            console.log(`📅 Added race ${roundNum}: ${raceName} - Status: ${status} - Circuit: ${circuit.circuitName || 'Not found'} - Coordinates: ${circuit.coordinates || 'none'}`);
+            console.log(`📅 Added race ${roundNum}: ${raceName} - Status: ${status} - Has results: ${hasRaceResults}`);
         });
     }
 
@@ -700,9 +726,8 @@ async function loadAllData() {
     console.log('📅 Final calendar:', calendar.map(r => ({
         round: r.round,
         name: r.name,
-        circuit: r.circuit,
         status: r.status,
-        hasCoords: !!r.coordinates
+        hasResults: r.status === 'completed'
     })));
     console.log('📅 Calendar length:', calendar.length);
 
