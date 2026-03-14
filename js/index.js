@@ -42,9 +42,69 @@ function updateHomepage(data) {
         </div>
     `;
     
-    // Update stats grid
-    const statsGrid = document.getElementById('stats-grid');
-    statsGrid.innerHTML = '';
+    // ===== FIXED: Calculate the next race properly =====
+    // Get current date for comparison
+    const currentDate = new Date();
+    console.log('Current date for next race calculation:', currentDate);
+    
+    // Find the next upcoming race based on date
+    let nextRace = null;
+    
+    if (data.calendar && data.calendar.length > 0) {
+        console.log('Calendar available, finding next race...');
+        
+        // Sort calendar by round to ensure order
+        const sortedCalendar = [...data.calendar].sort((a, b) => a.round - b.round);
+        
+        // First, log all races with their status and parsed dates for debugging
+        sortedCalendar.forEach(race => {
+            // Parse the race date to check if it's in the future
+            const dateStr = `${race.date} ${race.time}`;
+            console.log(`Race ${race.round}: ${race.name} - ${dateStr} - Status in data: ${race.status || 'unknown'}`);
+        });
+        
+        // Method 1: Use the status field from data-loader (should be 'upcoming' for future races)
+        nextRace = sortedCalendar.find(race => race.status === 'upcoming');
+        console.log('Next race by status field:', nextRace);
+        
+        // Method 2: If status field isn't reliable, find the first race with a future date
+        if (!nextRace) {
+            console.log('No race with upcoming status, checking dates manually...');
+            
+            // Parse each race date and find the next future race
+            for (const race of sortedCalendar) {
+                try {
+                    // Parse the date string (e.g., "21st March" + "19:00")
+                    let dateStr = race.date;
+                    // Remove ordinal suffixes (st, nd, rd, th)
+                    dateStr = dateStr.replace(/(\d+)(st|nd|rd|th)/, '$1');
+                    // Add current year
+                    const fullDateStr = `${dateStr} ${new Date().getFullYear()} ${race.time}`;
+                    
+                    // Try to parse the date
+                    const raceDate = new Date(fullDateStr);
+                    
+                    console.log(`Race ${race.round}: Parsed date: ${raceDate}, is future: ${raceDate > currentDate}`);
+                    
+                    if (raceDate > currentDate) {
+                        nextRace = race;
+                        console.log(`Found future race: ${race.name} on ${raceDate}`);
+                        break;
+                    }
+                } catch (e) {
+                    console.warn(`Could not parse date for race ${race.round}:`, e);
+                }
+            }
+        }
+    }
+    
+    // If still no next race found, use the first race in calendar
+    if (!nextRace && data.calendar && data.calendar.length > 0) {
+        nextRace = data.calendar[0];
+        console.log('Using first race as fallback:', nextRace);
+    }
+    
+    console.log('Final next race selected:', nextRace);
     
     // Get constructor name directly from constructorStandings
     const constructorName = data.constructorStandings?.[0]?.name || 
@@ -58,11 +118,15 @@ function updateHomepage(data) {
     console.log('Constructor name:', constructorName);
     console.log('Constructor points:', constructorPoints);
     
+    // Update stats grid
+    const statsGrid = document.getElementById('stats-grid');
+    statsGrid.innerHTML = '';
+    
     const stats = [
         {
             label: 'Next Race',
-            value: data.homepage.stats.nextRace.value,
-            detail: data.homepage.stats.nextRace.detail
+            value: nextRace?.name || data.homepage.stats.nextRace.value || 'TBD',
+            detail: nextRace ? `${nextRace.date} · ${nextRace.time}` : data.homepage.stats.nextRace.detail || 'TBD'
         },
         {
             label: 'Championship Leader',
