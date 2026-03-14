@@ -569,6 +569,10 @@ async function loadAllData() {
         const raceKeys = Object.keys(raceNamesRow).filter(key => key !== 'Round Date' && key !== 'col0');
         console.log('📅 Race keys found:', raceKeys);
         
+        // Get current date for comparison
+        const currentDate = new Date();
+        console.log('📅 Current date for comparison:', currentDate.toISOString());
+        
         raceKeys.forEach((key, index) => {
             // The key is something like "Australia Grand Prix Round 1 8th March"
             const raceInfo = key;
@@ -639,8 +643,40 @@ async function loadAllData() {
             
             circuit = circuit || {};
             
-            // Determine status based on current date (you may want to implement actual logic)
+            // Determine status based on race results
+            // Check if this round has any race results
+            const hasRaceResults = raceResults && raceResults.length > 0 && 
+                raceResults.some(row => row[`col${roundNum}`] && row[`col${roundNum}`] !== '');
+            
             let status = 'upcoming';
+            if (hasRaceResults) {
+                status = 'completed';
+            } else {
+                // Check if the race date has passed
+                // Parse the date string (e.g., "8th March") into a Date object for comparison
+                // This is simplified - you might need to handle date parsing more robustly
+                const currentYear = new Date().getFullYear();
+                const dateParts = dateStr.match(/(\d+)(?:st|nd|rd|th)?\s+(\w+)/i);
+                if (dateParts) {
+                    const day = parseInt(dateParts[1]);
+                    const monthName = dateParts[2];
+                    const months = {
+                        'january': 0, 'february': 1, 'march': 2, 'april': 3, 'may': 4, 'june': 5,
+                        'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11
+                    };
+                    const month = months[monthName.toLowerCase()];
+                    if (month !== undefined) {
+                        const raceDate = new Date(currentYear, month, day);
+                        // Add the time to the date for more accurate comparison
+                        const [hours, minutes] = timeStr.split(':').map(Number);
+                        raceDate.setHours(hours, minutes, 0, 0);
+                        
+                        if (raceDate < currentDate) {
+                            status = 'completed';
+                        }
+                    }
+                }
+            }
             
             calendar.push({
                 round: roundNum,
@@ -655,7 +691,7 @@ async function loadAllData() {
                 status: status
             });
             
-            console.log(`📅 Added race ${roundNum}: ${raceName} - Circuit: ${circuit.circuitName || 'Not found'} - Coordinates: ${circuit.coordinates || 'none'}`);
+            console.log(`📅 Added race ${roundNum}: ${raceName} - Status: ${status} - Circuit: ${circuit.circuitName || 'Not found'} - Coordinates: ${circuit.coordinates || 'none'}`);
         });
     }
 
@@ -665,6 +701,7 @@ async function loadAllData() {
         round: r.round,
         name: r.name,
         circuit: r.circuit,
+        status: r.status,
         hasCoords: !!r.coordinates
     })));
     console.log('📅 Calendar length:', calendar.length);
@@ -1136,6 +1173,10 @@ async function loadAllData() {
     console.log('📰 Transfer Window:', transferWindowStatus);
     console.log('📰 News Items:', newsItems);
 
+    // Find the next race for the homepage stats
+    const nextRace = calendar.find(race => race.status === 'upcoming') || calendar[0];
+    console.log('📅 Next race found:', nextRace);
+
     // ========== BUILD FINAL DATA ==========
     window.PL21_DATA = {
         // Raw data
@@ -1189,10 +1230,8 @@ async function loadAllData() {
             stats: {
                 nextRace: {
                     label: 'Next Race',
-                    value: calendar.find(r => r.status === 'upcoming')?.name || calendar[0]?.name || 'TBD',
-                    detail: calendar.find(r => r.status === 'upcoming') ? 
-                        `${calendar.find(r => r.status === 'upcoming').date} · ${calendar.find(r => r.status === 'upcoming').time}` : 
-                        calendar[0] ? `${calendar[0].date} · ${calendar[0].time}` : 'TBD'
+                    value: nextRace?.name || 'TBD',
+                    detail: nextRace ? `${nextRace.date} · ${nextRace.time}` : 'TBD'
                 },
                 leader: {
                     label: 'Championship Leader',

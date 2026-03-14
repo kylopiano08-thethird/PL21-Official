@@ -161,8 +161,17 @@ function showRaceResults(roundData) {
         return;
     }
     
-    tbody.innerHTML = classification.map((result, index) => {
-        const pos = index + 1;
+    // Sort by positionNumber to ensure correct order
+    const sortedResults = [...classification].sort((a, b) => {
+        // Handle cases where positionNumber might be null/undefined
+        const posA = a.positionNumber || 999;
+        const posB = b.positionNumber || 999;
+        return posA - posB;
+    });
+    
+    tbody.innerHTML = sortedResults.map((result, index) => {
+        // Use positionNumber from the data
+        const pos = result.positionNumber || (index + 1);
         const posClass = pos === 1 ? 'pos-1' : 
                         pos === 2 ? 'pos-2' : 
                         pos === 3 ? 'pos-3' : '';
@@ -208,8 +217,15 @@ function showQualifyingResults(roundData) {
         return;
     }
     
-    tbody.innerHTML = qualifying.map((result, index) => {
-        const pos = index + 1;
+    // Sort qualifying results by positionNumber
+    const sortedResults = [...qualifying].sort((a, b) => {
+        const posA = a.positionNumber || 999;
+        const posB = b.positionNumber || 999;
+        return posA - posB;
+    });
+    
+    tbody.innerHTML = sortedResults.map((result, index) => {
+        const pos = result.positionNumber || (index + 1);
         const posClass = pos === 1 ? 'pos-1' : 
                         pos === 2 ? 'pos-2' : 
                         pos === 3 ? 'pos-3' : '';
@@ -221,7 +237,7 @@ function showQualifyingResults(roundData) {
                     ${result.driver}
                 </td>
                 <td class="team-cell">${result.team}</td>
-                <td class="time-cell ${posClass}">${result.rawPosition || '—'}</td>
+                <td class="time-cell ${posClass}">P${pos}</td>
                 <td class="points-cell">—</td>
             </tr>
         `;
@@ -249,8 +265,15 @@ function showSprintResults(roundData) {
         return;
     }
     
-    tbody.innerHTML = sprint.map((result, index) => {
-        const pos = index + 1;
+    // Sort sprint results by positionNumber
+    const sortedResults = [...sprint].sort((a, b) => {
+        const posA = a.positionNumber || 999;
+        const posB = b.positionNumber || 999;
+        return posA - posB;
+    });
+    
+    tbody.innerHTML = sortedResults.map((result, index) => {
+        const pos = result.positionNumber || (index + 1);
         const posClass = pos === 1 ? 'pos-1' : 
                         pos === 2 ? 'pos-2' : 
                         pos === 3 ? 'pos-3' : '';
@@ -345,6 +368,11 @@ style.textContent = `
         display: inline-block;
         margin-left: 0.5rem;
         background: rgba(182, 87, 255, 0.1);
+    }
+
+    .time-cell {
+        font-family: 'F1-Regular', sans-serif;
+        font-weight: 500;
     }
 `;
 document.head.appendChild(style);
