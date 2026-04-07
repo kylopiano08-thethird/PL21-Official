@@ -100,7 +100,6 @@ function setupCalendar(data) {
     const races = data.calendar || [];
     
     console.log('📅 Races found:', races.length);
-    console.log('📅 Raw race statuses:', races.map(r => ({ round: r.round, name: r.name, status: r.status })));
     
     if (races.length === 0) {
         console.error('📅 No races found in calendar data');
@@ -116,22 +115,19 @@ function setupCalendar(data) {
     }
     
     // Enhance races with parsed coordinates from circuitInfo
-    // Use the status from data-loader (which is based on actual results)
     const enhancedRaces = races.map(race => {
         // Get coordinates from circuitInfo (where they're stored in data-loader)
         const coordinates = race.circuitInfo?.coordinates || race.coordinates || '';
         const coords = parseCoordinates(coordinates);
         
-        // Use the status from data-loader (already correctly set based on results)
-        // If status is not set, determine based on round numbers as fallback
-        let status = race.status;
-        if (!status || status === '') {
-            // Fallback: if no status, check if there are race results for this round
-            const hasResults = data.results && data.results.find(r => r.round === race.round)?.classification?.length > 0;
-            status = hasResults ? 'completed' : 'upcoming';
+        // Determine status based on current date (you can enhance this logic)
+        // For now, mark first 2 as completed, next as next, rest as upcoming
+        let status = 'upcoming';
+        if (race.round <= 2) {
+            status = 'completed';
+        } else if (race.round === 3) {
+            status = 'next';
         }
-        
-        console.log(`📅 Race ${race.round}: ${race.name} - Status from data: ${race.status} -> Using: ${status}`);
         
         return {
             ...race,
@@ -147,14 +143,6 @@ function setupCalendar(data) {
             circuitPicture: race.circuitInfo?.picture || ''
         };
     });
-    
-    // Find the next race (first upcoming race)
-    const nextRace = enhancedRaces.find(race => race.status === 'upcoming');
-    const completedRaces = enhancedRaces.filter(race => race.status === 'completed');
-    
-    console.log('📅 Completed races:', completedRaces.length);
-    console.log('📅 Next race:', nextRace);
-    console.log('📅 Upcoming races:', enhancedRaces.filter(r => r.status === 'upcoming').length);
     
     const validRaces = enhancedRaces.filter(race => race.hasValidCoords);
     console.log('📅 Races with valid coordinates:', validRaces.length);
@@ -180,11 +168,15 @@ function setupCalendar(data) {
         return;
     }
     
+    // Find next race (first upcoming race)
+    const nextRace = validRaces.find(race => race.status === 'next') || validRaces[0];
+    console.log('📅 Next race:', nextRace);
+    
     // Initialize map
-    initMap(nextRace || validRaces[0]);
+    initMap(nextRace);
     
     // Add markers
-    addMarkers(enhancedRaces);
+    addMarkers(validRaces);
     
     // Build calendar list
     buildCalendarList(enhancedRaces);
@@ -195,17 +187,16 @@ function setupCalendar(data) {
     // Setup parallax effect
     setupParallax();
     
-    // Set initial view to next race or first race
-    const initialRace = nextRace || validRaces[0];
-    if (initialRace) {
+    // Set initial view to next race
+    if (nextRace) {
         setTimeout(() => {
-            if (initialRace.lat && initialRace.lng) {
-                map.setView([initialRace.lat, initialRace.lng], 4.5, { animate: false });
-                const initialRaceItem = document.querySelector(`[data-round="${initialRace.round}"]`);
-                if (initialRaceItem && initialRace.status === 'upcoming') {
-                    initialRaceItem.classList.add('active');
-                    clickedItem = initialRaceItem;
-                    updateSidebar(initialRace);
+            if (nextRace.lat && nextRace.lng) {
+                map.setView([nextRace.lat, nextRace.lng], 4.5, { animate: false });
+                const nextRaceItem = document.querySelector(`[data-round="${nextRace.round}"]`);
+                if (nextRaceItem) {
+                    nextRaceItem.classList.add('active');
+                    clickedItem = nextRaceItem;
+                    updateSidebar(nextRace);
                 }
             }
         }, 500);
@@ -307,19 +298,16 @@ function addMarkers(races) {
         if (race.status === 'completed') {
             color = '#00ff88';  // Green for completed
             pulseClass = 'pulse-marker-completed';
-        } else if (race.status === 'upcoming') {
-            color = '#D4AF37';  // Gold/Yellow for next/upcoming race
+        } else if (race.status === 'next') {
+            color = '#D4AF37';  // Gold/Yellow for next race
             pulseClass = 'pulse-marker-next';
         } else {
-            color = '#ff3333';  // Bright red for other (fallback)
+            color = '#ff3333';  // Bright red for upcoming
             pulseClass = 'pulse-marker-upcoming';
         }
         
-        // Make upcoming races slightly larger and more prominent
-        const radius = race.status === 'upcoming' ? 8 : 6;
-        
         const marker = L.circleMarker([race.lat, race.lng], {
-            radius: radius,
+            radius: race.status === 'next' ? 8 : 6,
             color: color,
             fillColor: color,
             fillOpacity: 1,
@@ -360,23 +348,18 @@ function buildCalendarList(races) {
         // Determine dot class based on status
         let dotClass = '';
         if (race.status === 'completed') dotClass = 'dot-completed';
-        else if (race.status === 'upcoming') dotClass = 'dot-next';
+        else if (race.status === 'next') dotClass = 'dot-next';
         else dotClass = 'dot-upcoming';
         
         // Extract city from location
         const locationStr = race.location || '';
         const city = locationStr.split(',')[0].trim() || '';
         
-        // Add a "NEXT" badge for the next race
-        const nextBadge = race.status === 'upcoming' && !races.find(r => r.status === 'upcoming' && r.round < race.round) 
-            ? '<span class="next-badge">NEXT</span>' 
-            : '';
-        
         return `
         <div class="calendar-item" data-round="${race.round}" data-lat="${race.lat || ''}" data-lng="${race.lng || ''}" data-status="${race.status}">
             <span class="calendar-round">R${String(race.round).padStart(2, '0')}</span>
             <div class="calendar-info">
-                <div class="calendar-name">${race.name} ${nextBadge}</div>
+                <div class="calendar-name">${race.name}</div>
                 <div class="calendar-date">${city}</div>
             </div>
             <div class="calendar-dot ${dotClass}"></div>
@@ -481,18 +464,14 @@ function updateSidebar(race) {
     const picture = race.circuitPicture || race.picture || '';
     const record = race.circuitRecord || race.record || '';
     
-    // Format date if available
-    const dateStr = race.date ? `${race.date} · ${race.time || 'TBD'}` : 'Date TBD';
-    
     sidebarContent.innerHTML = `
         <div class="race-detail">
             <div class="race-header">
                 <span class="race-round-badge">ROUND ${race.round}</span>
-                <span class="race-status-badge status-${race.status}">${race.status === 'upcoming' ? 'UPCOMING' : (race.status === 'completed' ? 'COMPLETED' : 'UPCOMING')}</span>
+                <span class="race-status-badge status-${race.status}">${race.status ? race.status.toUpperCase() : 'UPCOMING'}</span>
             </div>
             <div class="race-title">${race.name}</div>
             <div class="race-location">${race.location || 'TBD'}</div>
-            <div class="race-date-time">📅 ${dateStr}</div>
             
             ${description ? `
             <div class="race-description">
@@ -516,10 +495,6 @@ function updateSidebar(race) {
                     <div class="stat-label">Length</div>
                     <div class="stat-value">${length}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Laps</div>
-                    <div class="stat-value">${race.laps || 'TBD'}</div>
-                </div>
                 ${record ? `
                 <div class="stat-item">
                     <div class="stat-label">Lap Record</div>
@@ -527,13 +502,6 @@ function updateSidebar(race) {
                 </div>
                 ` : ''}
             </div>
-            
-            ${race.status === 'upcoming' ? `
-            <div class="race-reminder">
-                <span class="reminder-icon">🔔</span>
-                <span class="reminder-text">Next race on ${race.date || 'TBD'} at ${race.time || 'TBD'}</span>
-            </div>
-            ` : ''}
         </div>
     `;
     
