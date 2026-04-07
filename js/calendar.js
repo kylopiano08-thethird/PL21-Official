@@ -98,34 +98,53 @@ function setupCalendar(data) {
     
     // Get calendar data
     const races = data.calendar || [];
+    const nextRaceFromHomepage = data.homepage?.stats?.nextRace;
     
-    console.log('📅 Races found:', races.length);
-    console.log('📅 Race statuses from data:', races.map(r => ({ round: r.round, name: r.name, status: r.status })));
+    console.log('📅 Next race from homepage:', nextRaceFromHomepage);
     
     if (races.length === 0) {
         console.error('📅 No races found in calendar data');
         return;
     }
     
-    // Log the first race to see its structure
-    if (races.length > 0) {
-        console.log('📅 First race object:', races[0]);
-        console.log('📅 First race circuitInfo:', races[0].circuitInfo);
-        console.log('📅 First race circuitInfo.coordinates:', races[0].circuitInfo?.coordinates);
-        console.log('📅 First race coordinates field:', races[0].coordinates);
+    // Get the round number of the next race from homepage data
+    let nextRaceRound = null;
+    if (nextRaceFromHomepage && nextRaceFromHomepage.value) {
+        // Find the race that matches the next race name
+        const matchingRace = races.find(r => r.name === nextRaceFromHomepage.value);
+        if (matchingRace) {
+            nextRaceRound = matchingRace.round;
+            console.log('📅 Next race round from homepage:', nextRaceRound);
+        }
     }
     
     // Enhance races with parsed coordinates from circuitInfo
-    // USE THE STATUS FROM DATA-LOADER - DO NOT OVERRIDE
+    // Set status based on homepage next race data
     const enhancedRaces = races.map(race => {
-        // Get coordinates from circuitInfo (where they're stored in data-loader)
+        // Get coordinates from circuitInfo
         const coordinates = race.circuitInfo?.coordinates || race.coordinates || '';
         const coords = parseCoordinates(coordinates);
         
-        // Keep the original status from data-loader
-        const status = race.status || 'upcoming';
+        // Determine status:
+        // - If round is less than next race round -> completed
+        // - If round equals next race round -> upcoming (next)
+        // - If round is greater than next race round -> upcoming
+        let status = 'upcoming';
+        if (nextRaceRound) {
+            if (race.round < nextRaceRound) {
+                status = 'completed';
+            } else if (race.round === nextRaceRound) {
+                status = 'upcoming'; // This is the next race
+            } else {
+                status = 'upcoming';
+            }
+        } else {
+            // Fallback: if we can't determine next race, check if there are results
+            const hasResults = data.results?.find(r => r.round === race.round)?.classification?.length > 0;
+            status = hasResults ? 'completed' : 'upcoming';
+        }
         
-        console.log(`📅 Race ${race.round}: ${race.name} - Status from data: ${status}`);
+        console.log(`📅 Race ${race.round}: ${race.name} - Status: ${status} ${race.round === nextRaceRound ? '(NEXT RACE)' : ''}`);
         
         return {
             ...race,
@@ -133,7 +152,7 @@ function setupCalendar(data) {
             lng: coords ? coords.lng : null,
             hasValidCoords: coords !== null,
             status: status,
-            // Also store the full circuit info for sidebar
+            isNextRace: race.round === nextRaceRound,
             circuitName: race.circuitInfo?.circuitName || race.circuit || 'TBD',
             circuitLength: race.circuitInfo?.length || 'TBD',
             circuitRecord: race.circuitInfo?.record || '',
@@ -142,27 +161,20 @@ function setupCalendar(data) {
         };
     });
     
-    // Find the next race (first upcoming race)
-    const nextRace = enhancedRaces.find(race => race.status === 'upcoming');
-    console.log('📅 Next race (first upcoming):', nextRace);
+    // Find the next race
+    const nextRace = enhancedRaces.find(race => race.isNextRace);
+    console.log('📅 Next race determined:', nextRace);
     
     const validRaces = enhancedRaces.filter(race => race.hasValidCoords);
     console.log('📅 Races with valid coordinates:', validRaces.length);
     
     if (validRaces.length === 0) {
         console.error('📅 No races with valid coordinates found');
-        console.log('📅 Checking all races circuitInfo:');
-        enhancedRaces.forEach((race, i) => {
-            console.log(`Race ${i+1}: ${race.name} - circuitInfo.coordinates:`, race.circuitInfo?.coordinates);
-        });
-        
-        // Still show the map but with a default view
         initMapWithDefault();
         buildCalendarList(enhancedRaces);
         setupSidebar(enhancedRaces);
         setupParallax();
         
-        // Hide loading, show content
         const loading = document.getElementById('loading');
         const content = document.getElementById('content');
         if (loading) loading.style.display = 'none';
@@ -185,18 +197,15 @@ function setupCalendar(data) {
     // Setup parallax effect
     setupParallax();
     
-    // Set initial view to next race or first race
-    const initialRace = nextRace || validRaces[0];
-    if (initialRace) {
+    // Set initial view to next race
+    if (nextRace && nextRace.lat && nextRace.lng) {
         setTimeout(() => {
-            if (initialRace.lat && initialRace.lng) {
-                map.setView([initialRace.lat, initialRace.lng], 4.5, { animate: false });
-                const initialRaceItem = document.querySelector(`[data-round="${initialRace.round}"]`);
-                if (initialRaceItem && initialRace.status === 'upcoming') {
-                    initialRaceItem.classList.add('active');
-                    clickedItem = initialRaceItem;
-                    updateSidebar(initialRace);
-                }
+            map.setView([nextRace.lat, nextRace.lng], 4.5, { animate: false });
+            const nextRaceItem = document.querySelector(`[data-round="${nextRace.round}"]`);
+            if (nextRaceItem) {
+                nextRaceItem.classList.add('active');
+                clickedItem = nextRaceItem;
+                updateSidebar(nextRace);
             }
         }, 500);
     }
@@ -297,16 +306,15 @@ function addMarkers(races) {
         if (race.status === 'completed') {
             color = '#00ff88';  // Green for completed
             pulseClass = 'pulse-marker-completed';
-        } else if (race.status === 'upcoming') {
-            color = '#D4AF37';  // Gold/Yellow for upcoming race
+        } else if (race.isNextRace) {
+            color = '#D4AF37';  // Gold/Yellow for next race
             pulseClass = 'pulse-marker-next';
         } else {
-            color = '#ff3333';  // Bright red for other (fallback)
+            color = '#ff3333';  // Red for other upcoming
             pulseClass = 'pulse-marker-upcoming';
         }
         
-        // Make upcoming races slightly larger
-        const radius = race.status === 'upcoming' ? 8 : 6;
+        const radius = race.isNextRace ? 8 : 6;
         
         const marker = L.circleMarker([race.lat, race.lng], {
             radius: radius,
@@ -347,19 +355,15 @@ function buildCalendarList(races) {
     }
     
     calendarList.innerHTML = races.map(race => {
-        // Determine dot class based on status
         let dotClass = '';
         if (race.status === 'completed') dotClass = 'dot-completed';
-        else if (race.status === 'upcoming') dotClass = 'dot-next';
+        else if (race.isNextRace) dotClass = 'dot-next';
         else dotClass = 'dot-upcoming';
         
-        // Extract city from location
         const locationStr = race.location || '';
         const city = locationStr.split(',')[0].trim() || '';
         
-        // Add a "NEXT" badge for the first upcoming race
-        const isNextRace = race.status === 'upcoming' && !races.find(r => r.status === 'upcoming' && r.round < race.round);
-        const nextBadge = isNextRace ? '<span class="next-badge">NEXT</span>' : '';
+        const nextBadge = race.isNextRace ? '<span class="next-badge">NEXT</span>' : '';
         
         return `
         <div class="calendar-item" data-round="${race.round}" data-lat="${race.lat || ''}" data-lng="${race.lng || ''}" data-status="${race.status}">
@@ -372,14 +376,12 @@ function buildCalendarList(races) {
         </div>
     `}).join('');
     
-    // Add event listeners
     addCalendarListeners(races);
 }
 
 function addCalendarListeners(races) {
     const calendarList = document.getElementById('calendar-list');
     
-    // Hover events
     calendarList.addEventListener('mouseover', (e) => {
         const item = e.target.closest('.calendar-item');
         if (!item) return;
@@ -417,7 +419,6 @@ function addCalendarListeners(races) {
         }, 200);
     });
     
-    // Click events
     calendarList.addEventListener('click', (e) => {
         const item = e.target.closest('.calendar-item');
         if (!item) return;
@@ -449,7 +450,6 @@ function setupSidebar(races) {
         closeBtn.addEventListener('click', resetToZoomedOut);
     }
     
-    // Map click to reset
     if (map) {
         map.on('click', (e) => {
             resetToZoomedOut();
@@ -463,21 +463,20 @@ function updateSidebar(race) {
     
     if (!sidebar || !sidebarContent) return;
     
-    // Get circuit info from race
     const circuitName = race.circuitName || race.circuit || 'TBD';
     const length = race.circuitLength || race.length || 'TBD';
     const description = race.circuitDescription || race.description || '';
     const picture = race.circuitPicture || race.picture || '';
     const record = race.circuitRecord || race.record || '';
-    
-    // Format date if available
     const dateStr = race.date ? `${race.date} · ${race.time || 'TBD'}` : 'Date TBD';
     
     sidebarContent.innerHTML = `
         <div class="race-detail">
             <div class="race-header">
                 <span class="race-round-badge">ROUND ${race.round}</span>
-                <span class="race-status-badge status-${race.status}">${race.status === 'upcoming' ? 'UPCOMING' : (race.status === 'completed' ? 'COMPLETED' : 'UPCOMING')}</span>
+                <span class="race-status-badge ${race.isNextRace ? 'status-next' : (race.status === 'completed' ? 'status-completed' : 'status-upcoming')}">
+                    ${race.isNextRace ? 'NEXT RACE' : (race.status === 'completed' ? 'COMPLETED' : 'UPCOMING')}
+                </span>
             </div>
             <div class="race-title">${race.name}</div>
             <div class="race-location">${race.location || 'TBD'}</div>
@@ -516,13 +515,6 @@ function updateSidebar(race) {
                 </div>
                 ` : ''}
             </div>
-            
-            ${race.status === 'upcoming' ? `
-            <div class="race-reminder">
-                <span class="reminder-icon">🔔</span>
-                <span class="reminder-text">Next race on ${race.date || 'TBD'} at ${race.time || 'TBD'}</span>
-            </div>
-            ` : ''}
         </div>
     `;
     
