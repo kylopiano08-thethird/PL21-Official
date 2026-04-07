@@ -140,6 +140,37 @@ function updateSessionButtons(roundData) {
     }
 }
 
+// Helper function to format position display (handles DNF, DNS, DNQ, DSQ)
+function formatPositionDisplay(result) {
+    const rawPosition = result.rawPosition;
+    const positionNumber = result.positionNumber;
+    
+    // Check for DNF/DNS/DNQ/DSQ in raw position text
+    if (rawPosition && typeof rawPosition === 'string') {
+        const upperRaw = rawPosition.toUpperCase();
+        if (upperRaw.includes('DNF')) return 'DNF';
+        if (upperRaw.includes('DNS')) return 'DNS';
+        if (upperRaw.includes('DNQ')) return 'DNQ';
+        if (upperRaw.includes('DSQ')) return 'DSQ';
+    }
+    
+    // If position number is null or undefined, treat as DNF
+    if (!positionNumber || positionNumber === null || positionNumber === 999) {
+        // Check raw position again for DNF indicators
+        if (rawPosition && rawPosition.toString().toUpperCase().includes('DNF')) {
+            return 'DNF';
+        }
+        return 'DNF';
+    }
+    
+    // Valid position number - show P position
+    let positionDisplay = `P${positionNumber}`;
+    if (result.hasFastestLap) {
+        positionDisplay += ' <span class="fastest-lap">FL</span>';
+    }
+    return positionDisplay;
+}
+
 function showRaceResults(roundData) {
     const container = document.getElementById('race-view');
     const qualifyingView = document.getElementById('qualifying-view');
@@ -161,26 +192,28 @@ function showRaceResults(roundData) {
         return;
     }
     
-    // Sort by positionNumber to ensure correct order
+    // Sort by positionNumber (DNFs will have null/999 and go to bottom)
     const sortedResults = [...classification].sort((a, b) => {
-        // Handle cases where positionNumber might be null/undefined
-        const posA = a.positionNumber || 999;
-        const posB = b.positionNumber || 999;
+        // DNF/DNS go to bottom (treat as 999)
+        const posA = (a.positionNumber && a.positionNumber !== null) ? a.positionNumber : 999;
+        const posB = (b.positionNumber && b.positionNumber !== null) ? b.positionNumber : 999;
         return posA - posB;
     });
     
     tbody.innerHTML = sortedResults.map((result, index) => {
-        // Use positionNumber from the data
-        const pos = result.positionNumber || (index + 1);
-        const posClass = pos === 1 ? 'pos-1' : 
-                        pos === 2 ? 'pos-2' : 
-                        pos === 3 ? 'pos-3' : '';
+        const pos = result.positionNumber;
+        const positionDisplay = formatPositionDisplay(result);
         
-        // Create position display with FL tag if applicable
-        let positionDisplay = `P${pos}`;
-        if (result.hasFastestLap) {
-            positionDisplay += ' <span class="fastest-lap">FL</span>';
-        }
+        // Check if it's a DNF/DNS/etc.
+        const isDNF = positionDisplay === 'DNF' || positionDisplay === 'DNS' || positionDisplay === 'DNQ' || positionDisplay === 'DSQ';
+        
+        // Only apply pos classes for actual podium positions
+        const posClass = (!isDNF && pos === 1) ? 'pos-1' : 
+                        (!isDNF && pos === 2) ? 'pos-2' : 
+                        (!isDNF && pos === 3) ? 'pos-3' : '';
+        
+        // For DNF, show points as 0
+        const pointsDisplay = isDNF ? '0' : (result.points || 0);
         
         return `
             <tr>
@@ -189,8 +222,8 @@ function showRaceResults(roundData) {
                     ${result.driver}
                 </td>
                 <td class="team-cell">${result.team}</td>
-                <td class="position-cell ${posClass}">${positionDisplay}</td>
-                <td class="points-cell">${result.points}</td>
+                <td class="position-cell ${posClass} ${isDNF ? 'dnf-cell' : ''}">${positionDisplay}</td>
+                <td class="points-cell">${pointsDisplay}</td>
             </tr>
         `;
     }).join('');
@@ -219,16 +252,19 @@ function showQualifyingResults(roundData) {
     
     // Sort qualifying results by positionNumber
     const sortedResults = [...qualifying].sort((a, b) => {
-        const posA = a.positionNumber || 999;
-        const posB = b.positionNumber || 999;
+        const posA = (a.positionNumber && a.positionNumber !== null) ? a.positionNumber : 999;
+        const posB = (b.positionNumber && b.positionNumber !== null) ? b.positionNumber : 999;
         return posA - posB;
     });
     
     tbody.innerHTML = sortedResults.map((result, index) => {
-        const pos = result.positionNumber || (index + 1);
-        const posClass = pos === 1 ? 'pos-1' : 
-                        pos === 2 ? 'pos-2' : 
-                        pos === 3 ? 'pos-3' : '';
+        const pos = result.positionNumber;
+        const positionDisplay = formatPositionDisplay(result);
+        const isDNF = positionDisplay === 'DNF' || positionDisplay === 'DNS' || positionDisplay === 'DNQ' || positionDisplay === 'DSQ';
+        
+        const posClass = (!isDNF && pos === 1) ? 'pos-1' : 
+                        (!isDNF && pos === 2) ? 'pos-2' : 
+                        (!isDNF && pos === 3) ? 'pos-3' : '';
         
         return `
             <tr>
@@ -237,7 +273,7 @@ function showQualifyingResults(roundData) {
                     ${result.driver}
                 </td>
                 <td class="team-cell">${result.team}</td>
-                <td class="time-cell ${posClass}">P${pos}</td>
+                <td class="time-cell ${posClass} ${isDNF ? 'dnf-cell' : ''}">${positionDisplay}</td>
                 <td class="points-cell">—</td>
             </tr>
         `;
@@ -267,22 +303,22 @@ function showSprintResults(roundData) {
     
     // Sort sprint results by positionNumber
     const sortedResults = [...sprint].sort((a, b) => {
-        const posA = a.positionNumber || 999;
-        const posB = b.positionNumber || 999;
+        const posA = (a.positionNumber && a.positionNumber !== null) ? a.positionNumber : 999;
+        const posB = (b.positionNumber && b.positionNumber !== null) ? b.positionNumber : 999;
         return posA - posB;
     });
     
     tbody.innerHTML = sortedResults.map((result, index) => {
-        const pos = result.positionNumber || (index + 1);
-        const posClass = pos === 1 ? 'pos-1' : 
-                        pos === 2 ? 'pos-2' : 
-                        pos === 3 ? 'pos-3' : '';
+        const pos = result.positionNumber;
+        const positionDisplay = formatPositionDisplay(result);
+        const isDNF = positionDisplay === 'DNF' || positionDisplay === 'DNS' || positionDisplay === 'DNQ' || positionDisplay === 'DSQ';
         
-        // Create position display with FL tag if applicable
-        let positionDisplay = `P${pos}`;
-        if (result.hasFastestLap) {
-            positionDisplay += ' <span class="fastest-lap">FL</span>';
-        }
+        const posClass = (!isDNF && pos === 1) ? 'pos-1' : 
+                        (!isDNF && pos === 2) ? 'pos-2' : 
+                        (!isDNF && pos === 3) ? 'pos-3' : '';
+        
+        // For DNF in sprint, show points as 0
+        const pointsDisplay = isDNF ? '0' : (result.points || 0);
         
         return `
             <tr>
@@ -291,8 +327,8 @@ function showSprintResults(roundData) {
                     ${result.driver}
                 </td>
                 <td class="team-cell">${result.team}</td>
-                <td class="position-cell ${posClass}">${positionDisplay}</td>
-                <td class="points-cell">${result.points || 0}</td>
+                <td class="position-cell ${posClass} ${isDNF ? 'dnf-cell' : ''}">${positionDisplay}</td>
+                <td class="points-cell">${pointsDisplay}</td>
             </tr>
         `;
     }).join('');
@@ -373,6 +409,11 @@ style.textContent = `
     .time-cell {
         font-family: 'F1-Regular', sans-serif;
         font-weight: 500;
+    }
+    
+    .dnf-cell {
+        color: #ff6b6b;
+        font-weight: 600;
     }
 `;
 document.head.appendChild(style);
