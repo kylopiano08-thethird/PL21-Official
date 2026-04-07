@@ -100,6 +100,7 @@ function setupCalendar(data) {
     const races = data.calendar || [];
     
     console.log('📅 Races found:', races.length);
+    console.log('📅 Race statuses from data:', races.map(r => ({ round: r.round, name: r.name, status: r.status })));
     
     if (races.length === 0) {
         console.error('📅 No races found in calendar data');
@@ -115,19 +116,16 @@ function setupCalendar(data) {
     }
     
     // Enhance races with parsed coordinates from circuitInfo
+    // USE THE STATUS FROM DATA-LOADER - DO NOT OVERRIDE
     const enhancedRaces = races.map(race => {
         // Get coordinates from circuitInfo (where they're stored in data-loader)
         const coordinates = race.circuitInfo?.coordinates || race.coordinates || '';
         const coords = parseCoordinates(coordinates);
         
-        // Determine status based on current date (you can enhance this logic)
-        // For now, mark first 2 as completed, next as next, rest as upcoming
-        let status = 'upcoming';
-        if (race.round <= 2) {
-            status = 'completed';
-        } else if (race.round === 3) {
-            status = 'next';
-        }
+        // Keep the original status from data-loader
+        const status = race.status || 'upcoming';
+        
+        console.log(`📅 Race ${race.round}: ${race.name} - Status from data: ${status}`);
         
         return {
             ...race,
@@ -143,6 +141,10 @@ function setupCalendar(data) {
             circuitPicture: race.circuitInfo?.picture || ''
         };
     });
+    
+    // Find the next race (first upcoming race)
+    const nextRace = enhancedRaces.find(race => race.status === 'upcoming');
+    console.log('📅 Next race (first upcoming):', nextRace);
     
     const validRaces = enhancedRaces.filter(race => race.hasValidCoords);
     console.log('📅 Races with valid coordinates:', validRaces.length);
@@ -168,15 +170,11 @@ function setupCalendar(data) {
         return;
     }
     
-    // Find next race (first upcoming race)
-    const nextRace = validRaces.find(race => race.status === 'next') || validRaces[0];
-    console.log('📅 Next race:', nextRace);
-    
     // Initialize map
-    initMap(nextRace);
+    initMap(nextRace || validRaces[0]);
     
     // Add markers
-    addMarkers(validRaces);
+    addMarkers(enhancedRaces);
     
     // Build calendar list
     buildCalendarList(enhancedRaces);
@@ -187,16 +185,17 @@ function setupCalendar(data) {
     // Setup parallax effect
     setupParallax();
     
-    // Set initial view to next race
-    if (nextRace) {
+    // Set initial view to next race or first race
+    const initialRace = nextRace || validRaces[0];
+    if (initialRace) {
         setTimeout(() => {
-            if (nextRace.lat && nextRace.lng) {
-                map.setView([nextRace.lat, nextRace.lng], 4.5, { animate: false });
-                const nextRaceItem = document.querySelector(`[data-round="${nextRace.round}"]`);
-                if (nextRaceItem) {
-                    nextRaceItem.classList.add('active');
-                    clickedItem = nextRaceItem;
-                    updateSidebar(nextRace);
+            if (initialRace.lat && initialRace.lng) {
+                map.setView([initialRace.lat, initialRace.lng], 4.5, { animate: false });
+                const initialRaceItem = document.querySelector(`[data-round="${initialRace.round}"]`);
+                if (initialRaceItem && initialRace.status === 'upcoming') {
+                    initialRaceItem.classList.add('active');
+                    clickedItem = initialRaceItem;
+                    updateSidebar(initialRace);
                 }
             }
         }, 500);
@@ -298,16 +297,19 @@ function addMarkers(races) {
         if (race.status === 'completed') {
             color = '#00ff88';  // Green for completed
             pulseClass = 'pulse-marker-completed';
-        } else if (race.status === 'next') {
-            color = '#D4AF37';  // Gold/Yellow for next race
+        } else if (race.status === 'upcoming') {
+            color = '#D4AF37';  // Gold/Yellow for upcoming race
             pulseClass = 'pulse-marker-next';
         } else {
-            color = '#ff3333';  // Bright red for upcoming
+            color = '#ff3333';  // Bright red for other (fallback)
             pulseClass = 'pulse-marker-upcoming';
         }
         
+        // Make upcoming races slightly larger
+        const radius = race.status === 'upcoming' ? 8 : 6;
+        
         const marker = L.circleMarker([race.lat, race.lng], {
-            radius: race.status === 'next' ? 8 : 6,
+            radius: radius,
             color: color,
             fillColor: color,
             fillOpacity: 1,
@@ -348,18 +350,22 @@ function buildCalendarList(races) {
         // Determine dot class based on status
         let dotClass = '';
         if (race.status === 'completed') dotClass = 'dot-completed';
-        else if (race.status === 'next') dotClass = 'dot-next';
+        else if (race.status === 'upcoming') dotClass = 'dot-next';
         else dotClass = 'dot-upcoming';
         
         // Extract city from location
         const locationStr = race.location || '';
         const city = locationStr.split(',')[0].trim() || '';
         
+        // Add a "NEXT" badge for the first upcoming race
+        const isNextRace = race.status === 'upcoming' && !races.find(r => r.status === 'upcoming' && r.round < race.round);
+        const nextBadge = isNextRace ? '<span class="next-badge">NEXT</span>' : '';
+        
         return `
         <div class="calendar-item" data-round="${race.round}" data-lat="${race.lat || ''}" data-lng="${race.lng || ''}" data-status="${race.status}">
             <span class="calendar-round">R${String(race.round).padStart(2, '0')}</span>
             <div class="calendar-info">
-                <div class="calendar-name">${race.name}</div>
+                <div class="calendar-name">${race.name} ${nextBadge}</div>
                 <div class="calendar-date">${city}</div>
             </div>
             <div class="calendar-dot ${dotClass}"></div>
@@ -464,14 +470,18 @@ function updateSidebar(race) {
     const picture = race.circuitPicture || race.picture || '';
     const record = race.circuitRecord || race.record || '';
     
+    // Format date if available
+    const dateStr = race.date ? `${race.date} · ${race.time || 'TBD'}` : 'Date TBD';
+    
     sidebarContent.innerHTML = `
         <div class="race-detail">
             <div class="race-header">
                 <span class="race-round-badge">ROUND ${race.round}</span>
-                <span class="race-status-badge status-${race.status}">${race.status ? race.status.toUpperCase() : 'UPCOMING'}</span>
+                <span class="race-status-badge status-${race.status}">${race.status === 'upcoming' ? 'UPCOMING' : (race.status === 'completed' ? 'COMPLETED' : 'UPCOMING')}</span>
             </div>
             <div class="race-title">${race.name}</div>
             <div class="race-location">${race.location || 'TBD'}</div>
+            <div class="race-date-time">📅 ${dateStr}</div>
             
             ${description ? `
             <div class="race-description">
@@ -495,6 +505,10 @@ function updateSidebar(race) {
                     <div class="stat-label">Length</div>
                     <div class="stat-value">${length}</div>
                 </div>
+                <div class="stat-item">
+                    <div class="stat-label">Laps</div>
+                    <div class="stat-value">${race.laps || 'TBD'}</div>
+                </div>
                 ${record ? `
                 <div class="stat-item">
                     <div class="stat-label">Lap Record</div>
@@ -502,6 +516,13 @@ function updateSidebar(race) {
                 </div>
                 ` : ''}
             </div>
+            
+            ${race.status === 'upcoming' ? `
+            <div class="race-reminder">
+                <span class="reminder-icon">🔔</span>
+                <span class="reminder-text">Next race on ${race.date || 'TBD'} at ${race.time || 'TBD'}</span>
+            </div>
+            ` : ''}
         </div>
     `;
     
