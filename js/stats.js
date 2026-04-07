@@ -261,6 +261,7 @@ function updateMostPodiums(drivers) {
     }
 }
 
+// UPDATED: Show ALL drivers, not just top 6
 function updateDriversTab(data, statistics) {
     const drivers = data.standings.drivers;
     const selector = document.querySelector('.driver-selector');
@@ -271,8 +272,8 @@ function updateDriversTab(data, statistics) {
         return;
     }
     
-    // Build driver selector (top 6 drivers)
-    selector.innerHTML = drivers.slice(0, 6).map(driver => `
+    // Build driver selector for ALL drivers
+    selector.innerHTML = drivers.map(driver => `
         <div class="driver-tab" data-driver="${driver.id}">
             <div class="driver-tab-number">#${driver.number}</div>
             <div class="driver-tab-name">${driver.short || driver.name.split(' ').pop().toUpperCase()}</div>
@@ -280,8 +281,8 @@ function updateDriversTab(data, statistics) {
         </div>
     `).join('');
     
-    // Build driver profiles with comprehensive stats
-    deepdiveContainer.innerHTML = drivers.slice(0, 6).map((driver, idx) => {
+    // Build driver profiles for ALL drivers
+    deepdiveContainer.innerHTML = drivers.map((driver, idx) => {
         const display = idx === 0 ? 'block' : 'none';
         
         // Calculate comprehensive stats for this driver
@@ -829,7 +830,7 @@ function setupDriverTabs() {
     }
 }
 
-// Updated updateTeamsTab function with comprehensive team stats
+// UPDATED: Show ALL teams, not just top 4
 function updateTeamsTab(data) {
     const teams = data.standings.constructors;
     const selector = document.querySelector('.team-selector');
@@ -840,16 +841,16 @@ function updateTeamsTab(data) {
         return;
     }
     
-    // Build team selector
-    selector.innerHTML = teams.slice(0, 4).map(team => `
+    // Build team selector for ALL teams
+    selector.innerHTML = teams.map(team => `
         <div class="team-tab" data-team="${team.id}">
             <div class="team-tab-name" style="color: ${team.primaryColor}">${team.name.split(' ')[0].toUpperCase()}</div>
             <div class="team-tab-points">${team.points} pts</div>
         </div>
     `).join('');
     
-    // Build team profiles with comprehensive stats
-    profilesContainer.innerHTML = teams.slice(0, 4).map((team, idx) => {
+    // Build team profiles for ALL teams
+    profilesContainer.innerHTML = teams.map((team, idx) => {
         const display = idx === 0 ? 'block' : 'none';
         
         // Calculate comprehensive team stats
@@ -1521,7 +1522,7 @@ function generateTeamComparison(team, data) {
             <div class="comparison-stats">
                 <div class="comparison-row">
                     <span class="comparison-label">Points</span>
-                    <span class="comparison-value">${driver2Points}</span>
+                    <span class="comparison-value comparison-highlight">${driver2Points}</span>
                 </div>
                 <div class="comparison-row">
                     <span class="comparison-label">Wins</span>
