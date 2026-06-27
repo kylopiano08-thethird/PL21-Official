@@ -891,3 +891,168 @@
     .archive-grid { margin: 1.5rem 0; }
     .archive-card { padding: 1.5rem; }
 }
+
+/* css/archive.css */
+
+/* ===== GRID VIEW ===== */
+.archive-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    max-width: 600px;
+    margin: 3rem 0;
+}
+
+.archive-card {
+    background: #0f0f0f;
+    border-radius: 24px;
+    border: 1px solid #222;
+    padding: 2rem;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    width: 100%;
+    max-width: 600px;
+}
+
+.archive-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('https://i.postimg.cc/JzqxFKTt/Screenshot-2026-06-27-234236.png');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.15;
+    z-index: 0;
+    transition: opacity 0.4s ease;
+}
+
+.archive-card:hover::before {
+    opacity: 0.25;
+}
+
+/* Keep content above background */
+.archive-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.archive-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #0024dc, #860000);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+}
+
+.archive-card:hover {
+    transform: translateY(-8px);
+    border-color: #860000;
+    box-shadow: 0 20px 40px rgba(134, 0, 0, 0.15);
+}
+
+.archive-card:hover::after {
+    opacity: 1;
+}
+
+.archive-featured {
+    border-color: #860000;
+    background: linear-gradient(145deg, #0f0f0f, #0a0a0a);
+}
+
+.archive-featured::after {
+    opacity: 1;
+}
+
+.archive-season-badge {
+    display: inline-block;
+    background: rgba(212, 175, 55, 0.15);
+    color: #D4AF37;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    position: relative;
+    z-index: 1;
+}
+
+.archive-card-title {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Archivo', sans-serif;
+    margin-bottom: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.archive-card-subtitle {
+    color: #777;
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.archive-card .champion {
+    color: #ffd700;
+    font-weight: 700;
+}
+
+.archive-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #222;
+    position: relative;
+    z-index: 1;
+}
+
+.archive-stat {
+    text-align: center;
+}
+
+.archive-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #860000;
+    font-family: 'Archivo', sans-serif;
+}
+
+.archive-stat-label {
+    color: #777;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.25rem;
+}
+
+.archive-card .view-link {
+    display: inline-block;
+    margin-top: 1.5rem;
+    color: #860000;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.archive-card .view-link:hover {
+    transform: translateX(5px);
+}
+
+/* Rest of your CSS remains exactly the same */
