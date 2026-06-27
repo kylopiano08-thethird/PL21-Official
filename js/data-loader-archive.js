@@ -1,12 +1,11 @@
 // js/data-loader-archive.js - PL21 Archive Data Loader
 const ARCHIVE_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
 
-// Function to parse CSV text properly (copied from your main data-loader)
+// Function to parse CSV text properly
 function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
     
-    // Parse header - clean up quotes and split properly
     const headerLine = lines[0];
     const headers = [];
     let current = '';
@@ -26,7 +25,6 @@ function parseCSV(csvText) {
     }
     headers.push(current.trim().replace(/^"+|"+$/g, ''));
     
-    // Parse data rows
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -48,11 +46,9 @@ function parseCSV(csvText) {
         }
         fields.push(current.trim().replace(/^"+|"+$/g, ''));
         
-        // Create object with headers as keys
         const row = {};
         headers.forEach((header, index) => {
             let value = fields[index] || '';
-            // Try to convert numeric strings to numbers
             if (value && !isNaN(value) && value.trim() !== '') {
                 value = parseFloat(value);
             }
@@ -65,13 +61,11 @@ function parseCSV(csvText) {
     return rows;
 }
 
-// Fetch sheet using the SAME proxy approach as your main data-loader
 async function fetchSheet(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Use the same /api/sheets proxy endpoint as your main data-loader
-        // But with the PL21 sheet ID
-        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&cb=${cacheBuster}`;
+        // Pass the sheet ID as a query parameter to the API
+        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&sheetId=${ARCHIVE_SHEET_ID}&format=csv&cb=${cacheBuster}`;
         
         console.log(`📡 Fetching ${sheetName} from PL21 sheet...`);
         
@@ -135,7 +129,6 @@ function getFlagEmoji(country) {
 async function loadArchiveData() {
     console.log('📦 Loading PL21 archive data from sheet:', ARCHIVE_SHEET_ID);
 
-    // Fetch all sheets from the PL21 sheet - using the same approach as your main data-loader
     const [
         driverMaster,
         driverMovement,
@@ -167,7 +160,7 @@ async function loadArchiveData() {
         sprintResults: sprintResults.length
     });
 
-    // ========== PROCESS TEAMS (copied from your main data-loader) ==========
+    // ========== PROCESS TEAMS ==========
     const teamMap = {};
     teamMaster.forEach((team, index) => {
         const teamName = findValue(team, ['Team Name', 'Team', 'col0']);
@@ -196,7 +189,7 @@ async function loadArchiveData() {
     });
     console.log('🏁 PL21 Teams loaded:', Object.keys(teamMap).length);
 
-    // ========== PROCESS DRIVER MOVEMENT (copied from your main data-loader) ==========
+    // ========== PROCESS DRIVER MOVEMENT ==========
     const driverTeamMap = {};
     driverMovement.forEach(row => {
         const driver = findValue(row, ['Driver', 'col0']);
@@ -219,7 +212,7 @@ async function loadArchiveData() {
     });
     console.log('🏁 PL21 Driver movement loaded:', Object.keys(driverTeamMap).length);
 
-    // ========== PROCESS DRIVERS (copied from your main data-loader) ==========
+    // ========== PROCESS DRIVERS ==========
     const drivers = [];
     driverMaster.forEach((driver, index) => {
         const driverName = findValue(driver, ['Driver', 'col0']);
@@ -260,13 +253,12 @@ async function loadArchiveData() {
     });
     console.log('🏎️ PL21 Drivers loaded:', drivers.length);
 
-    // Assign drivers to teams
     drivers.forEach(driver => {
         const team = teamMap[driver.currentTeam];
         if (team) team.drivers.push(driver);
     });
 
-    // ========== PROCESS CALENDAR (copied from your main data-loader) ==========
+    // ========== PROCESS CALENDAR ==========
     console.log('📅 Processing PL21 calendar data...');
     const calendar = [];
 
@@ -275,7 +267,6 @@ async function loadArchiveData() {
         const lapsRow = calendarRaw[1];
         const raceKeys = Object.keys(raceNamesRow).filter(key => key !== 'Round Date' && key !== 'col0');
         
-        // Determine which rounds have results
         const roundsWithResults = new Set();
         if (raceResults && raceResults.length > 0) {
             for (let roundNum = 1; roundNum <= raceKeys.length; roundNum++) {
@@ -289,7 +280,6 @@ async function loadArchiveData() {
         }
         console.log('📅 PL21 Rounds with results:', Array.from(roundsWithResults));
 
-        // Determine sprint rounds
         const sprintRoundsMap = {};
         if (sprintResults && sprintResults.length > 0) {
             const headerRow = sprintResults[0];
@@ -346,7 +336,7 @@ async function loadArchiveData() {
     }
     console.log('📅 PL21 Calendar loaded:', calendar.length);
 
-    // ========== PROCESS RESULTS (copied from your main data-loader) ==========
+    // ========== PROCESS RESULTS ==========
     console.log('🏁 Processing PL21 results...');
 
     const results = calendar.map(race => {
@@ -437,7 +427,7 @@ async function loadArchiveData() {
         };
     });
 
-    // ========== CALCULATE STANDINGS (copied from your main data-loader) ==========
+    // ========== CALCULATE STANDINGS ==========
     console.log('📊 Calculating PL21 standings...');
 
     Object.values(teamMap).forEach(team => {
@@ -524,7 +514,6 @@ async function loadArchiveData() {
         console.log('📊 Top driver:', driverStandings[0].name, driverStandings[0].points);
     }
 
-    // ========== BUILD FINAL DATA ==========
     const ARCHIVE_DATA = {
         drivers,
         teams: Object.values(teamMap).filter(t => t.drivers.length > 0),
