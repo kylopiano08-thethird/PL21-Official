@@ -289,7 +289,7 @@ function renderRaceResults(races) {
                 ${podium.map((p, idx) => `
                     <div class="podium-item pos-${idx + 1}">
                         <div class="pos">${idx + 1}${idx === 0 ? 'st' : idx === 1 ? 'nd' : 'rd'}</div>
-                        <div class="name">${p.driver.split(' ').pop()}</div>
+                        <div class="name">${p.driver.split(' ').pop()}${p.hasFastestLap ? ' <span style="color:#9b59b6;">FL</span>' : ''}</div>
                     </div>
                 `).join('')}
                 ${podium.length < 3 ? '<div class="podium-item"><div class="pos">—</div><div class="name">—</div></div>'.repeat(3 - podium.length) : ''}
@@ -297,7 +297,7 @@ function renderRaceResults(races) {
             <div class="race-stats">
                 <span>${race.date || 'TBD'}</span>
                 ${race.hasSprint ? '<span>🏁 Sprint</span>' : ''}
-                <span>FL: ${fastestLap ? fastestLap.driver : '—'} ${fastestLap ? '⚡' : ''}</span>
+                <span>FL: ${fastestLap ? fastestLap.driver : '—'}</span>
             </div>
             <div class="click-hint">Click for full results →</div>
         </div>`;
@@ -389,7 +389,7 @@ function renderAdvancedStats(data, completedRaces) {
     const container = document.getElementById('advancedStats');
     if (!container) return;
     
-    const { results, teams, drivers, calendar } = data;
+    const { drivers, calendar } = data;
     const champion = data.standings?.drivers?.[0];
     const constructors = data.standings?.constructors || [];
     
@@ -403,7 +403,7 @@ function renderAdvancedStats(data, completedRaces) {
         }
     });
 
-    // Calculate total laps completed using Calendar sheet (row 5 = laps)
+    // Calculate total laps completed using Calendar sheet
     let totalLaps = 0;
     completedRaces.forEach(race => {
         // Find the calendar entry for this race to get lap count
@@ -419,7 +419,7 @@ function renderAdvancedStats(data, completedRaces) {
         totalLaps += lapCount * finishers.length;
     });
 
-    // Calculate attendance rate (reuse from earlier)
+    // Calculate attendance rate
     let attendanceRate = 0;
     if (drivers && drivers.length > 0 && data.calendar && data.calendar.length > 0) {
         let totalAttendances = 0;
@@ -452,6 +452,13 @@ function renderAdvancedStats(data, completedRaces) {
     const driversByWins = drivers ? [...drivers].sort((a, b) => b.wins - a.wins) : [];
     const mostWinsDriver = driversByWins.length > 0 ? driversByWins[0] : null;
     const mostWins = mostWinsDriver ? mostWinsDriver.wins : 0;
+
+    // Get most different winners
+    const differentWinners = new Set();
+    completedRaces.forEach(race => {
+        const winner = race.classification.find(r => r.positionNumber === 1);
+        if (winner) differentWinners.add(winner.driver);
+    });
 
     container.innerHTML = `
         <div class="season-advanced-card">
@@ -522,7 +529,7 @@ function renderAdvancedStats(data, completedRaces) {
             </div>
             <div class="stat-row">
                 <span class="label">Most Different Winners</span>
-                <span class="value highlight">${completedRaces.length > 0 ? new Set(completedRaces.map(r => r.classification.find(c => c.positionNumber === 1)?.driver)).size : 0}</span>
+                <span class="value highlight">${differentWinners.size}</span>
             </div>
             <div class="stat-row">
                 <span class="label">Sprint Races</span>
@@ -577,7 +584,7 @@ function openModal(round) {
             const isFL = r.hasFastestLap;
             return `<tr class="${isDNF ? 'dnf' : posClass}">
                 <td>${isDNF ? 'DNF' : r.positionNumber}</td>
-                <td><span class="driver-dot" style="background:${r.teamColor || '#860000'};"></span>${r.driver || 'Unknown'} ${isFL ? '⚡' : ''}</td>
+                <td><span class="driver-dot" style="background:${r.teamColor || '#860000'};"></span>${r.driver || 'Unknown'} ${isFL ? '<span style="color:#9b59b6;">FL</span>' : ''}</td>
                 <td>${r.team || '—'}</td>
                 <td>${isDNF ? 0 : r.points}</td>
             </tr>`;
