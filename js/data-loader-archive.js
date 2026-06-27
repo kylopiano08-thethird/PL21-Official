@@ -69,9 +69,10 @@ async function fetchSheet(sheetName) {
     try {
         const cacheBuster = Date.now();
         // Use the same proxy approach as the main data-loader
+        // But with the PL21 sheet ID
         const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&cb=${cacheBuster}`;
         
-        console.log(`📡 Fetching ${sheetName}...`);
+        console.log(`📡 Fetching ${sheetName} from PL21 sheet...`);
         
         const res = await fetch(url);
         
@@ -82,7 +83,7 @@ async function fetchSheet(sheetName) {
         const csvText = await res.text();
         return parseCSV(csvText);
     } catch (e) {
-        console.warn(`Failed to load ${sheetName}:`, e);
+        console.warn(`Failed to load ${sheetName} from PL21 sheet:`, e);
         return [];
     }
 }
@@ -119,9 +120,9 @@ function getFlagEmoji(country) {
 }
 
 async function loadArchiveData() {
-    console.log('📦 Loading PL21 archive data...');
+    console.log('📦 Loading PL21 archive data from sheet:', ARCHIVE_SHEET_ID);
 
-    // Fetch all sheets using the same method as the main data-loader
+    // Fetch all sheets from the PL21 sheet
     const [
         driverMaster,
         driverMovement,
@@ -142,7 +143,7 @@ async function loadArchiveData() {
         fetchSheet('Sprint Results')
     ]);
 
-    console.log('📊 Archive sheets loaded:', {
+    console.log('📊 PL21 Archive sheets loaded:', {
         driverMaster: driverMaster.length,
         driverMovement: driverMovement.length,
         teamMaster: teamMaster.length,
@@ -177,7 +178,7 @@ async function loadArchiveData() {
             totalFastestLaps: 0
         };
     });
-    console.log('🏁 Teams loaded:', Object.keys(teamMap));
+    console.log('🏁 PL21 Teams loaded:', Object.keys(teamMap));
 
     // ========== PROCESS DRIVER MOVEMENT ==========
     const driverTeamMap = {};
@@ -200,7 +201,7 @@ async function loadArchiveData() {
             round12: row['Round 12'] || row['col12'] || ''
         };
     });
-    console.log('🏁 Driver movement loaded:', Object.keys(driverTeamMap));
+    console.log('🏁 PL21 Driver movement loaded:', Object.keys(driverTeamMap).length);
 
     // ========== PROCESS DRIVERS ==========
     const drivers = driverMaster.map(driver => {
@@ -237,7 +238,7 @@ async function loadArchiveData() {
             }
         };
     });
-    console.log('🏎️ Drivers loaded:', drivers.length);
+    console.log('🏎️ PL21 Drivers loaded:', drivers.length);
 
     // Assign drivers to teams
     drivers.forEach(driver => {
@@ -246,7 +247,7 @@ async function loadArchiveData() {
     });
 
     // ========== PROCESS CALENDAR ==========
-    console.log('📅 Processing calendar data...');
+    console.log('📅 Processing PL21 calendar data...');
     const calendar = [];
 
     if (calendarRaw.length >= 3) {
@@ -266,7 +267,7 @@ async function loadArchiveData() {
                 if (hasResults) roundsWithResults.add(roundNum);
             }
         }
-        console.log('📅 Rounds with results:', Array.from(roundsWithResults));
+        console.log('📅 PL21 Rounds with results:', Array.from(roundsWithResults));
 
         // Determine sprint rounds
         const sprintRoundsMap = {};
@@ -283,7 +284,7 @@ async function loadArchiveData() {
                 }
             });
         }
-        console.log('📅 Sprint rounds:', sprintRoundsMap);
+        console.log('📅 PL21 Sprint rounds:', sprintRoundsMap);
 
         raceKeys.forEach((key, index) => {
             const raceInfo = key;
@@ -321,10 +322,10 @@ async function loadArchiveData() {
         });
         calendar.sort((a, b) => a.round - b.round);
     }
-    console.log('📅 Calendar loaded:', calendar.length);
+    console.log('📅 PL21 Calendar loaded:', calendar.length);
 
     // ========== PROCESS RESULTS ==========
-    console.log('🏁 Processing results...');
+    console.log('🏁 Processing PL21 results...');
 
     const results = calendar.map(race => {
         const roundCol = `col${race.round}`;
@@ -407,7 +408,7 @@ async function loadArchiveData() {
     });
 
     // ========== CALCULATE STANDINGS ==========
-    console.log('📊 Calculating standings...');
+    console.log('📊 Calculating PL21 standings...');
 
     Object.values(teamMap).forEach(team => {
         team.roundPoints = {};
@@ -487,8 +488,8 @@ async function loadArchiveData() {
         .sort((a, b) => b.totalPoints - a.totalPoints)
         .map((team, i) => ({ ...team, pos: i + 1 }));
 
-    console.log('📊 Driver standings:', driverStandings.length);
-    console.log('📊 Constructor standings:', constructorStandings.length);
+    console.log('📊 PL21 Driver standings:', driverStandings.length);
+    console.log('📊 PL21 Constructor standings:', constructorStandings.length);
 
     // ========== BUILD FINAL DATA ==========
     const ARCHIVE_DATA = {
