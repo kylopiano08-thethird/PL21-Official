@@ -273,6 +273,7 @@ function renderRaceResults(races) {
         
         const winner = sortedClassification.find(r => r.positionNumber === 1);
         const podium = sortedClassification.filter(r => r.positionNumber && r.positionNumber <= 3);
+        const fastestLap = sortedClassification.find(r => r.hasFastestLap);
         
         return `<div class="result-card" data-round="${race.round}" data-race="${race.name}">
             <div class="race-header">
@@ -296,7 +297,7 @@ function renderRaceResults(races) {
             <div class="race-stats">
                 <span>${race.date || 'TBD'}</span>
                 ${race.hasSprint ? '<span>🏁 Sprint</span>' : ''}
-                <span>FL: ${sortedClassification.find(r => r.hasFastestLap)?.driver || '—'}</span>
+                <span>FL: ${fastestLap ? fastestLap.driver : '—'} ${fastestLap ? '⚡' : ''}</span>
             </div>
             <div class="click-hint">Click for full results →</div>
         </div>`;
@@ -390,6 +391,7 @@ function renderAdvancedStats(data, completedRaces) {
     
     const { results, teams, drivers, calendar } = data;
     const champion = data.standings?.drivers?.[0];
+    const constructors = data.standings?.constructors || [];
     
     // Calculate total DNFs (drivers who didn't finish)
     let totalDNFs = 0;
@@ -401,16 +403,55 @@ function renderAdvancedStats(data, completedRaces) {
         }
     });
 
-    // Calculate total laps completed properly
+    // Calculate total laps completed using Calendar sheet (row 5 = laps)
     let totalLaps = 0;
     completedRaces.forEach(race => {
-        const lapCount = parseInt(race.laps) || 0;
+        // Find the calendar entry for this race to get lap count
+        const calendarEntry = data.calendar.find(c => c.round === race.round);
+        let lapCount = 0;
+        
+        if (calendarEntry && calendarEntry.laps) {
+            lapCount = parseInt(calendarEntry.laps) || 0;
+        }
+        
         // Count drivers who finished (have a position number)
         const finishers = race.classification.filter(r => r.positionNumber !== null && r.positionNumber !== undefined);
         totalLaps += lapCount * finishers.length;
     });
 
-    const constructors = data.standings?.constructors || [];
+    // Calculate attendance rate (reuse from earlier)
+    let attendanceRate = 0;
+    if (drivers && drivers.length > 0 && data.calendar && data.calendar.length > 0) {
+        let totalAttendances = 0;
+        let totalPossibleAttendances = 0;
+        
+        drivers.forEach(driver => {
+            data.calendar.forEach(race => {
+                const roundNum = race.round;
+                const movement = driver.movement || {};
+                const roundKey = `round${roundNum}`;
+                const hasTeam = movement[roundKey] && movement[roundKey] !== '';
+                
+                if (hasTeam) {
+                    totalPossibleAttendances++;
+                    const raceResult = completedRaces.find(r => r.round === roundNum);
+                    if (raceResult) {
+                        const hasResult = raceResult.classification.some(r => r.driver === driver.name);
+                        if (hasResult) {
+                            totalAttendances++;
+                        }
+                    }
+                }
+            });
+        });
+        
+        attendanceRate = totalPossibleAttendances > 0 ? Math.round((totalAttendances / totalPossibleAttendances) * 100) : 0;
+    }
+
+    // Get the actual driver with most wins from the standings
+    const driversByWins = drivers ? [...drivers].sort((a, b) => b.wins - a.wins) : [];
+    const mostWinsDriver = driversByWins.length > 0 ? driversByWins[0] : null;
+    const mostWins = mostWinsDriver ? mostWinsDriver.wins : 0;
 
     container.innerHTML = `
         <div class="season-advanced-card">
@@ -433,7 +474,7 @@ function renderAdvancedStats(data, completedRaces) {
             </div>
             <div class="stat-row">
                 <span class="label">Attendance Rate</span>
-                <span class="value">${document.getElementById('statAttendance').textContent}</span>
+                <span class="value">${attendanceRate}%</span>
             </div>
         </div>
 
@@ -477,7 +518,7 @@ function renderAdvancedStats(data, completedRaces) {
             <h3>Race Statistics</h3>
             <div class="stat-row">
                 <span class="label">Most Wins</span>
-                <span class="value highlight">${drivers && drivers.length > 0 ? [...drivers].sort((a, b) => b.wins - a.wins)[0]?.name || '—' : '—'} (${drivers && drivers.length > 0 ? [...drivers].sort((a, b) => b.wins - a.wins)[0]?.wins || 0 : 0} wins)</span>
+                <span class="value highlight">${mostWinsDriver ? mostWinsDriver.name : '—'} (${mostWins} wins)</span>
             </div>
             <div class="stat-row">
                 <span class="label">Most Different Winners</span>
@@ -533,9 +574,10 @@ function openModal(round) {
         raceBody.innerHTML = sortedClassification.map(r => {
             const posClass = r.positionNumber === 1 ? 'pos-1' : r.positionNumber === 2 ? 'pos-2' : r.positionNumber === 3 ? 'pos-3' : '';
             const isDNF = !r.positionNumber;
+            const isFL = r.hasFastestLap;
             return `<tr class="${isDNF ? 'dnf' : posClass}">
                 <td>${isDNF ? 'DNF' : r.positionNumber}</td>
-                <td><span class="driver-dot" style="background:${r.teamColor || '#860000'};"></span>${r.driver || 'Unknown'}</td>
+                <td><span class="driver-dot" style="background:${r.teamColor || '#860000'};"></span>${r.driver || 'Unknown'} ${isFL ? '⚡' : ''}</td>
                 <td>${r.team || '—'}</td>
                 <td>${isDNF ? 0 : r.points}</td>
             </tr>`;
