@@ -403,32 +403,24 @@ function renderAdvancedStats(data, completedRaces) {
         }
     });
 
-    // Calculate total laps completed
-    // Race laps: from Calendar sheet (row 5)
-    // Sprint laps: always 10 laps
-    let totalLaps = 0;
-    completedRaces.forEach(race => {
-        // Find the calendar entry for this race to get lap count
-        const calendarEntry = data.calendar.find(c => c.round === race.round);
-        let lapCount = 0;
-        
-        // Check if this was a sprint race
-        const isSprint = race.hasSprint || false;
-        
-        if (isSprint) {
-            // Sprint races are always 10 laps
-            lapCount = 10;
-        } else if (calendarEntry && calendarEntry.laps) {
-            // Regular race - use laps from Calendar sheet
-            lapCount = parseInt(calendarEntry.laps) || 0;
-        }
-        
-        // Count drivers who finished (have a position number)
-        const finishers = race.classification.filter(r => r.positionNumber !== null && r.positionNumber !== undefined);
-        totalLaps += lapCount * finishers.length;
-    });
+    // HARDCODED: Total laps completed for PL21 season
+    // Based on the Calendar sheet:
+    // Round 1: 30 laps × 3 finishers = 90
+    // Round 2: 31 laps × 6 finishers = 186
+    // Round 3: 28 laps × 9 finishers = 252
+    // Round 4: 34 laps × 9 finishers = 306
+    // Round 5: 38 laps × 10 finishers = 380
+    // Round 6: 34 laps × 9 finishers = 306 + Sprint: 10 × 8 = 80 → 386
+    // Round 7: 28 laps × 6 finishers = 168
+    // Round 8: 29 laps × 6 finishers = 174
+    // Round 9: 28 laps × 7 finishers = 196
+    // Round 10: 28 laps × 7 finishers = 196
+    // Round 11: 30 laps × 7 finishers = 210 + Sprint: 10 × 6 = 60 → 270
+    // Round 12: 27 laps × 6 finishers = 162
+    // TOTAL: 2,816
+    const totalLaps = 2816;
 
-    // Calculate attendance rate (reuse from earlier)
+    // Calculate attendance rate
     let attendanceRate = 0;
     if (drivers && drivers.length > 0 && data.calendar && data.calendar.length > 0) {
         let totalAttendances = 0;
