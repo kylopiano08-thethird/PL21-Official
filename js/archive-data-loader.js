@@ -71,7 +71,6 @@ function parseCSV(csvText) {
 async function fetchArchiveSheetAsCSV(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Use the main /api/sheets with season=archive
         const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&season=archive&cb=${cacheBuster}`;
         
         console.log(`📡 [ARCHIVE] Fetching ${sheetName} as CSV...`);
@@ -93,7 +92,6 @@ async function fetchArchiveSheetAsCSV(sheetName) {
 async function fetchArchiveSheetAsJSON(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Use the main /api/sheets with season=archive
         const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=json&season=archive&cb=${cacheBuster}`;
         
         console.log(`📡 [ARCHIVE] Fetching ${sheetName} as JSON...`);
@@ -128,7 +126,6 @@ async function fetchArchiveSheetAsJSON(sheetName) {
 }
 
 async function fetchArchiveSheet(sheetName) {
-    // Try JSON first
     const jsonData = await fetchArchiveSheetAsJSON(sheetName);
     if (jsonData && jsonData.length > 0) {
         return jsonData;
@@ -391,20 +388,24 @@ async function loadArchiveData() {
 
         const calendar = [];
 
-        if (calendarRaw.length >= 3) {
-            // Row 0 contains race names and dates
+        if (calendarRaw.length >= 5) {
+            // Row 0: Race names
+            // Row 1: Round labels
+            // Row 2: Dates
+            // Row 3: Time
+            // Row 4: Laps (row 5 in the sheet)
+            // Row 5: Sprint indicators (row 6 in the sheet)
             const raceNamesRow = calendarRaw[0];
-            // Row 1 contains laps (row 5 in the sheet)
-            const lapsRow = calendarRaw[1];
+            const lapsRow = calendarRaw[4];
+            const sprintRow = calendarRaw[5] || {};
             
             console.log('📅 Race names row:', raceNamesRow);
-            console.log('📅 Laps row (row 1 / sheet row 5):', lapsRow);
+            console.log('📅 Laps row (row 5 / index 4):', lapsRow);
+            console.log('📅 Sprint row (row 6 / index 5):', sprintRow);
             
-            // Get all the race keys (excluding 'Round Date' which is the first column)
-            const raceKeys = Object.keys(raceNamesRow).filter(key => key !== 'Round Date' && key !== 'col0');
+            const raceKeys = Object.keys(raceNamesRow).filter(key => key !== 'Round Date' && key !== 'col0' && key !== '');
             console.log('📅 Race keys found:', raceKeys);
             
-            // First, determine which rounds have results by checking the Race Results sheet
             const roundsWithResults = new Set();
             if (raceResults && raceResults.length > 0) {
                 for (let roundNum = 1; roundNum <= raceKeys.length; roundNum++) {
@@ -415,50 +416,43 @@ async function loadArchiveData() {
                     });
                     if (hasResults) {
                         roundsWithResults.add(roundNum);
-                        console.log(`📅 Round ${roundNum} HAS RESULTS`);
                     }
                 }
             }
-            console.log('📅 Rounds with results:', Array.from(roundsWithResults));
             
             raceKeys.forEach((key, index) => {
-                const raceInfo = key;
-                let raceName = raceInfo;
+                let raceName = key;
                 let dateStr = 'TBD';
+                let timeStr = '19:00';
                 
-                const roundMatch = raceInfo.match(/Round (\d+)/i);
+                const roundMatch = key.match(/Round (\d+)/i);
                 let roundNum = index + 1;
                 if (roundMatch) {
                     roundNum = parseInt(roundMatch[1]);
                 }
                 
-                const dateMatch = raceInfo.match(/Round \d+\s+(.+)$/i);
+                const dateMatch = key.match(/Round \d+\s+(.+)$/i);
                 if (dateMatch) {
                     dateStr = dateMatch[1].trim();
-                    raceName = raceInfo.replace(/Round \d+\s+.+$/, '').trim();
+                    raceName = key.replace(/Round \d+\s+.+$/, '').trim();
                 } else {
-                    raceName = raceInfo;
+                    raceName = key;
                 }
                 
-                const dateValue = raceNamesRow[key];
-                let timeStr = '19:00';
-                
-                if (typeof dateValue === 'string' && dateValue.startsWith('Date(')) {
-                    const matches = dateValue.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
-                    if (matches) {
-                        const [_, year, month, day, hour, minute, second] = matches;
-                        timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                    }
-                }
-                
-                // Get laps - properly extract from lapsRow (row 1 / sheet row 5)
                 let laps = 'TBD';
                 if (lapsRow && lapsRow[key] !== undefined && lapsRow[key] !== '') {
                     laps = lapsRow[key];
                 }
                 console.log(`📅 Round ${roundNum} laps:`, laps);
                 
-                // Find matching circuit from circuit master - try multiple matching strategies
+                let hasSprint = false;
+                if (sprintRow && sprintRow[key] !== undefined && sprintRow[key] !== '') {
+                    const sprintValue = sprintRow[key].toString().toLowerCase().trim();
+                    if (sprintValue === 'x' || sprintValue === 'true' || sprintValue === 'yes') {
+                        hasSprint = true;
+                    }
+                }
+                
                 let circuit = circuits.find(c => 
                     c.raceName && c.raceName.toLowerCase().includes(raceName.toLowerCase().replace(' grand prix', ''))
                 );
@@ -485,37 +479,37 @@ async function loadArchiveData() {
                     laps: laps,
                     circuitInfo: circuit,
                     coordinates: circuit.coordinates || '',
-                    status: status
+                    status: status,
+                    hasSprint: hasSprint
                 });
-                
-                console.log(`📅 Added race ${roundNum}: ${raceName} - Laps: ${laps} - Status: ${status}`);
             });
         }
 
-        // Sort by round number
         calendar.sort((a, b) => a.round - b.round);
         console.log('📅 Final calendar:', calendar.map(r => ({
             round: r.round,
             name: r.name,
             laps: r.laps,
+            hasSprint: r.hasSprint,
             status: r.status
         })));
-        console.log('📅 Calendar length:', calendar.length);
 
         // ========== PROCESS SPRINT INFORMATION ==========
         const sprintRoundsMap = {};
+        calendar.forEach(race => {
+            if (race.hasSprint) {
+                sprintRoundsMap[race.round] = true;
+            }
+        });
 
         if (sprintResults && sprintResults.length > 0) {
             const headerRow = sprintResults[0];
-            
             Object.keys(headerRow).forEach(key => {
                 if (key === 'col0') return;
-                
                 const value = headerRow[key];
                 if (value && value.toString().trim() !== '') {
                     const headerText = value.toString();
                     const roundMatch = headerText.match(/Round\s+(\d+)/i);
-                    
                     if (roundMatch) {
                         const roundNum = parseInt(roundMatch[1]);
                         sprintRoundsMap[roundNum] = true;
@@ -524,6 +518,8 @@ async function loadArchiveData() {
             });
         }
 
+        console.log('🏁 Final sprint rounds map:', sprintRoundsMap);
+
         // ========== PROCESS RESULTS ==========
         const results = calendar.map(race => {
             const roundCol = `col${race.round}`;
@@ -531,10 +527,7 @@ async function loadArchiveData() {
             
             const getRoundResults = (sheet, sheetName, isSprint = false) => {
                 const roundResults = [];
-                
-                if (!sheet || sheet.length === 0) {
-                    return roundResults;
-                }
+                if (!sheet || sheet.length === 0) return roundResults;
                 
                 for (let i = 1; i < sheet.length; i++) {
                     const row = sheet[i];
@@ -545,9 +538,7 @@ async function loadArchiveData() {
                     if (!position || position === '') continue;
                     
                     const driver = drivers.find(d => d.name === driverName);
-                    if (!driver) {
-                        continue;
-                    }
+                    if (!driver) continue;
                     
                     const teamForRound = driver.getTeamForRound(race.round);
                     
@@ -573,7 +564,6 @@ async function loadArchiveData() {
                     }
                     
                     let points = 0;
-                    
                     if (isSprint) {
                         if (positionNumber && positionNumber <= 8) {
                             const sprintPointsSystem = [8, 7, 6, 5, 4, 3, 2, 1];
@@ -583,10 +573,7 @@ async function loadArchiveData() {
                         if (positionNumber && positionNumber <= 10) {
                             const racePointsSystem = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
                             points = racePointsSystem[positionNumber - 1];
-                            
-                            if (hasFastestLap) {
-                                points += 1;
-                            }
+                            if (hasFastestLap) points += 1;
                         } else if (hasFastestLap) {
                             points = 1;
                         }
