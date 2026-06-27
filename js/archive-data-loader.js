@@ -68,7 +68,6 @@ function parseCSV(csvText) {
     return rows;
 }
 
-// Use the MAIN proxy with season=archive parameter
 async function fetchArchiveSheetAsCSV(sheetName) {
     try {
         const cacheBuster = Date.now();
@@ -386,14 +385,26 @@ async function loadArchiveData() {
         }).filter(c => c !== null);
 
         // ========== PROCESS CALENDAR ==========
+        console.log('📅 Processing calendar data...');
+        console.log('📅 RAW CALENDAR DATA:', calendarRaw);
+        console.log('📅 Calendar rows count:', calendarRaw.length);
+
         const calendar = [];
 
         if (calendarRaw.length >= 3) {
+            // Row 0 contains race names and dates
             const raceNamesRow = calendarRaw[0];
+            // Row 1 contains laps (row 5 in the sheet)
             const lapsRow = calendarRaw[1];
             
-            const raceKeys = Object.keys(raceNamesRow).filter(key => key !== 'Round Date' && key !== 'col0');
+            console.log('📅 Race names row:', raceNamesRow);
+            console.log('📅 Laps row (row 1 / sheet row 5):', lapsRow);
             
+            // Get all the race keys (excluding 'Round Date' which is the first column)
+            const raceKeys = Object.keys(raceNamesRow).filter(key => key !== 'Round Date' && key !== 'col0');
+            console.log('📅 Race keys found:', raceKeys);
+            
+            // First, determine which rounds have results by checking the Race Results sheet
             const roundsWithResults = new Set();
             if (raceResults && raceResults.length > 0) {
                 for (let roundNum = 1; roundNum <= raceKeys.length; roundNum++) {
@@ -404,9 +415,11 @@ async function loadArchiveData() {
                     });
                     if (hasResults) {
                         roundsWithResults.add(roundNum);
+                        console.log(`📅 Round ${roundNum} HAS RESULTS`);
                     }
                 }
             }
+            console.log('📅 Rounds with results:', Array.from(roundsWithResults));
             
             raceKeys.forEach((key, index) => {
                 const raceInfo = key;
@@ -438,8 +451,14 @@ async function loadArchiveData() {
                     }
                 }
                 
-                const laps = lapsRow?.[key] || 'TBD';
+                // Get laps - properly extract from lapsRow (row 1 / sheet row 5)
+                let laps = 'TBD';
+                if (lapsRow && lapsRow[key] !== undefined && lapsRow[key] !== '') {
+                    laps = lapsRow[key];
+                }
+                console.log(`📅 Round ${roundNum} laps:`, laps);
                 
+                // Find matching circuit from circuit master - try multiple matching strategies
                 let circuit = circuits.find(c => 
                     c.raceName && c.raceName.toLowerCase().includes(raceName.toLowerCase().replace(' grand prix', ''))
                 );
@@ -468,10 +487,20 @@ async function loadArchiveData() {
                     coordinates: circuit.coordinates || '',
                     status: status
                 });
+                
+                console.log(`📅 Added race ${roundNum}: ${raceName} - Laps: ${laps} - Status: ${status}`);
             });
         }
 
+        // Sort by round number
         calendar.sort((a, b) => a.round - b.round);
+        console.log('📅 Final calendar:', calendar.map(r => ({
+            round: r.round,
+            name: r.name,
+            laps: r.laps,
+            status: r.status
+        })));
+        console.log('📅 Calendar length:', calendar.length);
 
         // ========== PROCESS SPRINT INFORMATION ==========
         const sprintRoundsMap = {};
