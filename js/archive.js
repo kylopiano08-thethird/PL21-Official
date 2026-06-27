@@ -403,14 +403,23 @@ function renderAdvancedStats(data, completedRaces) {
         }
     });
 
-    // Calculate total laps completed using Calendar sheet
+    // Calculate total laps completed
+    // Race laps: from Calendar sheet (row 5)
+    // Sprint laps: always 10 laps
     let totalLaps = 0;
     completedRaces.forEach(race => {
         // Find the calendar entry for this race to get lap count
         const calendarEntry = data.calendar.find(c => c.round === race.round);
         let lapCount = 0;
         
-        if (calendarEntry && calendarEntry.laps) {
+        // Check if this was a sprint race
+        const isSprint = race.hasSprint || false;
+        
+        if (isSprint) {
+            // Sprint races are always 10 laps
+            lapCount = 10;
+        } else if (calendarEntry && calendarEntry.laps) {
+            // Regular race - use laps from Calendar sheet
             lapCount = parseInt(calendarEntry.laps) || 0;
         }
         
@@ -454,6 +463,10 @@ function renderAdvancedStats(data, completedRaces) {
         const winner = race.classification.find(r => r.positionNumber === 1);
         if (winner) differentWinners.add(winner.driver);
     });
+
+    // Hardcoded most wins for PL21 season
+    // yuushi_241 and reflexiveaim both have 4 wins
+    const mostWinsText = 'yuushi_241 and reflexiveaim (4 wins each)';
 
     container.innerHTML = `
         <div class="season-advanced-card">
@@ -518,6 +531,10 @@ function renderAdvancedStats(data, completedRaces) {
 
         <div class="season-advanced-card">
             <h3>Race Statistics</h3>
+            <div class="stat-row">
+                <span class="label">Most Wins</span>
+                <span class="value highlight">${mostWinsText}</span>
+            </div>
             <div class="stat-row">
                 <span class="label">Most Different Winners</span>
                 <span class="value highlight">${differentWinners.size}</span>
