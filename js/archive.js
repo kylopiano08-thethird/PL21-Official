@@ -419,7 +419,7 @@ function renderAdvancedStats(data, completedRaces) {
         totalLaps += lapCount * finishers.length;
     });
 
-    // Calculate attendance rate
+    // Calculate attendance rate (reuse from earlier)
     let attendanceRate = 0;
     if (drivers && drivers.length > 0 && data.calendar && data.calendar.length > 0) {
         let totalAttendances = 0;
@@ -447,11 +447,6 @@ function renderAdvancedStats(data, completedRaces) {
         
         attendanceRate = totalPossibleAttendances > 0 ? Math.round((totalAttendances / totalPossibleAttendances) * 100) : 0;
     }
-
-    // Get the actual driver with most wins from the standings
-    const driversByWins = drivers ? [...drivers].sort((a, b) => b.wins - a.wins) : [];
-    const mostWinsDriver = driversByWins.length > 0 ? driversByWins[0] : null;
-    const mostWins = mostWinsDriver ? mostWinsDriver.wins : 0;
 
     // Get most different winners
     const differentWinners = new Set();
@@ -523,10 +518,6 @@ function renderAdvancedStats(data, completedRaces) {
 
         <div class="season-advanced-card">
             <h3>Race Statistics</h3>
-            <div class="stat-row">
-                <span class="label">Most Wins</span>
-                <span class="value highlight">${mostWinsDriver ? mostWinsDriver.name : '—'} (${mostWins} wins)</span>
-            </div>
             <div class="stat-row">
                 <span class="label">Most Different Winners</span>
                 <span class="value highlight">${differentWinners.size}</span>
