@@ -68,9 +68,8 @@ function parseCSV(csvText) {
 async function fetchSheet(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Use the same proxy approach as the main data-loader
-        // But with the PL21 sheet ID
-        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&cb=${cacheBuster}`;
+        // Directly fetch from the PL21 Google Sheet using the public CSV export URL
+        const url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&cb=${cacheBuster}`;
         
         console.log(`📡 Fetching ${sheetName} from PL21 sheet...`);
         
@@ -163,6 +162,9 @@ async function loadArchiveData() {
         if (teamName === 'Team Name' || teamName === 'Team' || teamName === 'Name') return;
         if (teamName.toLowerCase().includes('round')) return;
         
+        // Get car image from column F - try multiple possible column names
+        const carImage = team['Car Image'] || team['Car_Image'] || team['carImage'] || team['col5'] || team['Photo'] || team['photo'] || '';
+        
         teamMap[teamName] = {
             id: teamName.toLowerCase().replace(/\s+/g, ''),
             name: teamName,
@@ -170,6 +172,7 @@ async function loadArchiveData() {
             secondaryColor: team['Secondary Color'] || team['Secondary'] || team['col2'] || '#000000',
             owner: team['Team Owner'] || team['Owner'] || team['col3'] || 'TBA',
             engineer: team['Engineer'] || team['col4'] || '',
+            carImage: carImage,
             drivers: [],
             totalPoints: 0,
             totalWins: 0,
