@@ -6,6 +6,7 @@ function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
     
+    // Parse header - clean up quotes and split properly
     const headerLine = lines[0];
     const headers = [];
     let current = '';
@@ -25,6 +26,7 @@ function parseCSV(csvText) {
     }
     headers.push(current.trim().replace(/^"+|"+$/g, ''));
     
+    // Parse data rows
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -46,9 +48,11 @@ function parseCSV(csvText) {
         }
         fields.push(current.trim().replace(/^"+|"+$/g, ''));
         
+        // Create object with headers as keys
         const row = {};
         headers.forEach((header, index) => {
             let value = fields[index] || '';
+            // Try to convert numeric strings to numbers
             if (value && !isNaN(value) && value.trim() !== '') {
                 value = parseFloat(value);
             }
@@ -64,8 +68,8 @@ function parseCSV(csvText) {
 async function fetchSheet(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Pass the sheet ID as a query parameter to the API
-        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&sheetId=${ARCHIVE_SHEET_ID}&format=csv&cb=${cacheBuster}`;
+        // Directly fetch from the PL21 Google Sheet using the public CSV export URL
+        const url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&cb=${cacheBuster}`;
         
         console.log(`📡 Fetching ${sheetName} from PL21 sheet...`);
         
@@ -129,6 +133,7 @@ function getFlagEmoji(country) {
 async function loadArchiveData() {
     console.log('📦 Loading PL21 archive data from sheet:', ARCHIVE_SHEET_ID);
 
+    // Fetch all sheets from the PL21 sheet
     const [
         driverMaster,
         driverMovement,
@@ -160,6 +165,18 @@ async function loadArchiveData() {
         sprintResults: sprintResults.length
     });
 
+    // Log sample data to debug
+    if (raceResults.length > 0) {
+        console.log('🔍 Sample Race Results row:', raceResults[0]);
+        console.log('🔍 Race Results headers:', Object.keys(raceResults[0]));
+    }
+    if (qualiResults.length > 0) {
+        console.log('🔍 Sample Quali Results row:', qualiResults[0]);
+    }
+    if (sprintResults.length > 0) {
+        console.log('🔍 Sample Sprint Results row:', sprintResults[0]);
+    }
+
     // ========== PROCESS TEAMS ==========
     const teamMap = {};
     teamMaster.forEach((team, index) => {
@@ -169,6 +186,7 @@ async function loadArchiveData() {
         if (teamName === 'Team Name' || teamName === 'Team' || teamName === 'Name') return;
         if (teamName.toLowerCase().includes('round')) return;
         
+        // Get car image
         const carImage = findValue(team, ['Car Image', 'Car_Image', 'carImage', 'col5', 'Photo', 'photo']);
         
         teamMap[teamName] = {
@@ -217,6 +235,7 @@ async function loadArchiveData() {
     driverMaster.forEach((driver, index) => {
         const driverName = findValue(driver, ['Driver', 'col0']);
         if (!driverName) return;
+        // Skip header row
         if (driverName.toLowerCase().includes('driver') && index === 0) return;
         
         const movement = driverTeamMap[driverName] || {};
@@ -253,6 +272,7 @@ async function loadArchiveData() {
     });
     console.log('🏎️ PL21 Drivers loaded:', drivers.length);
 
+    // Assign drivers to teams
     drivers.forEach(driver => {
         const team = teamMap[driver.currentTeam];
         if (team) team.drivers.push(driver);
@@ -265,8 +285,13 @@ async function loadArchiveData() {
     if (calendarRaw.length >= 3) {
         const raceNamesRow = calendarRaw[0];
         const lapsRow = calendarRaw[1];
-        const raceKeys = Object.keys(raceNamesRow).filter(key => key !== 'Round Date' && key !== 'col0');
+        const raceKeys = Object.keys(raceNamesRow).filter(key => 
+            key !== 'Round Date' && key !== 'col0' && !key.includes('Date') && key.startsWith('col')
+        );
         
+        console.log('📅 Race keys found:', raceKeys);
+        
+        // Determine which rounds have results
         const roundsWithResults = new Set();
         if (raceResults && raceResults.length > 0) {
             for (let roundNum = 1; roundNum <= raceKeys.length; roundNum++) {
@@ -280,11 +305,12 @@ async function loadArchiveData() {
         }
         console.log('📅 PL21 Rounds with results:', Array.from(roundsWithResults));
 
+        // Determine sprint rounds
         const sprintRoundsMap = {};
         if (sprintResults && sprintResults.length > 0) {
             const headerRow = sprintResults[0];
             Object.keys(headerRow).forEach(key => {
-                if (key === 'col0') return;
+                if (key === 'col0' || key === 'Driver') return;
                 const value = headerRow[key];
                 if (value && value.toString().trim() !== '') {
                     const roundMatch = value.toString().match(/Round\s+(\d+)/i);
@@ -356,7 +382,9 @@ async function loadArchiveData() {
                 if (!position || position === '') continue;
                 
                 const driver = drivers.find(d => d.name === driverName);
-                if (!driver) continue;
+                if (!driver) {
+                    continue;
+                }
                 
                 const teamForRound = driver.getTeamForRound(race.round);
                 let positionStr = position.toString();
@@ -514,6 +542,7 @@ async function loadArchiveData() {
         console.log('📊 Top driver:', driverStandings[0].name, driverStandings[0].points);
     }
 
+    // ========== BUILD FINAL DATA ==========
     const ARCHIVE_DATA = {
         drivers,
         teams: Object.values(teamMap).filter(t => t.drivers.length > 0),
