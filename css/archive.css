@@ -5,7 +5,7 @@
     display: grid;
     grid-template-columns: 1fr;
     max-width: 600px;
-    margin: 3rem auto;
+    margin: 3rem 0;  /* Changed from '3rem auto' to '3rem 0' to left-align */
 }
 
 .archive-card {
@@ -17,6 +17,8 @@
     position: relative;
     overflow: hidden;
     cursor: pointer;
+    width: 100%;  /* Ensure full width */
+    max-width: 600px;  /* Keep the card width consistent */
 }
 
 .archive-card::before {
@@ -886,6 +888,6 @@
     .modal-table { font-size: 0.8rem; }
     .modal-table th,
     .modal-table td { padding: 0.4rem 0.3rem; }
-    .archive-grid { margin: 1.5rem auto; }
+    .archive-grid { margin: 1.5rem 0; }
     .archive-card { padding: 1.5rem; }
 }
