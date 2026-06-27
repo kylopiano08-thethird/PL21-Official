@@ -1,7 +1,7 @@
 // js/data-loader-archive.js - PL21 Archive Data Loader
 const PL21_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
 
-// Function to parse CSV text properly (copied from main data-loader)
+// Function to parse CSV text properly
 function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
@@ -65,13 +65,13 @@ function parseCSV(csvText) {
     return rows;
 }
 
-async function fetchSheet(sheetName) {
+async function fetchSheetDirect(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Use the API with sheetId parameter
-        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&sheetId=${PL21_SHEET_ID}&format=csv&cb=${cacheBuster}`;
+        // Directly fetch from Google Sheets using the public CSV export URL
+        const url = `https://docs.google.com/spreadsheets/d/${PL21_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&cb=${cacheBuster}`;
         
-        console.log(`📡 Fetching ${sheetName} from PL21 sheet...`);
+        console.log(`📡 Direct fetch: ${sheetName} from PL21 sheet...`);
         
         const res = await fetch(url);
         
@@ -81,10 +81,10 @@ async function fetchSheet(sheetName) {
         
         const csvText = await res.text();
         const parsed = parseCSV(csvText);
-        console.log(`📡 ${sheetName}: ${parsed.length} rows loaded`);
+        console.log(`📡 ${sheetName}: ${parsed.length} rows loaded (direct)`);
         return parsed;
     } catch (e) {
-        console.warn(`Failed to load ${sheetName} from PL21 sheet:`, e);
+        console.warn(`Failed to load ${sheetName} directly:`, e);
         return [];
     }
 }
@@ -133,9 +133,9 @@ function getFlagEmoji(country) {
 }
 
 async function loadArchiveData() {
-    console.log('📦 Loading PL21 archive data from sheet:', PL21_SHEET_ID);
+    console.log('📦 Loading PL21 archive data via direct fetch...');
 
-    // Fetch all sheets from the PL21 sheet using the API with sheetId
+    // Fetch all sheets directly from Google Sheets
     const [
         driverMaster,
         driverMovement,
@@ -146,17 +146,17 @@ async function loadArchiveData() {
         qualiResults,
         sprintResults
     ] = await Promise.all([
-        fetchSheet('Driver Master'),
-        fetchSheet('Driver Movement'),
-        fetchSheet('Team Master'),
-        fetchSheet('Circuit Master'),
-        fetchSheet('Calendar'),
-        fetchSheet('Race Results'),
-        fetchSheet('Quali Results'),
-        fetchSheet('Sprint Results')
+        fetchSheetDirect('Driver Master'),
+        fetchSheetDirect('Driver Movement'),
+        fetchSheetDirect('Team Master'),
+        fetchSheetDirect('Circuit Master'),
+        fetchSheetDirect('Calendar'),
+        fetchSheetDirect('Race Results'),
+        fetchSheetDirect('Quali Results'),
+        fetchSheetDirect('Sprint Results')
     ]);
 
-    console.log('📊 PL21 Archive sheets loaded:', {
+    console.log('📊 PL21 Archive sheets loaded (direct):', {
         driverMaster: driverMaster.length,
         driverMovement: driverMovement.length,
         teamMaster: teamMaster.length,
@@ -166,6 +166,17 @@ async function loadArchiveData() {
         qualiResults: qualiResults.length,
         sprintResults: sprintResults.length
     });
+
+    // If no data loaded, show error
+    const totalRows = driverMaster.length + driverMovement.length + teamMaster.length + 
+                      circuitMaster.length + calendarRaw.length + raceResults.length + 
+                      qualiResults.length + sprintResults.length;
+
+    if (totalRows === 0) {
+        console.error('❌ No data loaded from PL21 sheet. Make sure the sheet is published.');
+        console.log('📌 To publish: File → Share → Publish to web → Publish');
+        return null;
+    }
 
     // ========== PROCESS TEAMS ==========
     const teamMap = {};
@@ -367,7 +378,6 @@ async function loadArchiveData() {
                 
                 const driver = drivers.find(d => d.name === driverName);
                 if (!driver) {
-                    console.log(`⚠️ Driver not found: ${driverName}`);
                     continue;
                 }
                 
