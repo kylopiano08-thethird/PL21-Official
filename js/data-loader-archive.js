@@ -1,11 +1,12 @@
 // js/data-loader-archive.js - PL21 Archive Data Loader
-const PL21_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
+const ARCHIVE_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
 
 // Function to parse CSV text properly
 function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
     
+    // Parse header - clean up quotes and split properly
     const headerLine = lines[0];
     const headers = [];
     let current = '';
@@ -13,6 +14,7 @@ function parseCSV(csvText) {
     
     for (let i = 0; i < headerLine.length; i++) {
         const char = headerLine[i];
+        
         if (char === '"') {
             inQuotes = !inQuotes;
         } else if (char === ',' && !inQuotes) {
@@ -24,6 +26,7 @@ function parseCSV(csvText) {
     }
     headers.push(current.trim().replace(/^"+|"+$/g, ''));
     
+    // Parse data rows
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -33,6 +36,7 @@ function parseCSV(csvText) {
         
         for (let j = 0; j < line.length; j++) {
             const char = line[j];
+            
             if (char === '"') {
                 inQuotes = !inQuotes;
             } else if (char === ',' && !inQuotes) {
@@ -44,24 +48,28 @@ function parseCSV(csvText) {
         }
         fields.push(current.trim().replace(/^"+|"+$/g, ''));
         
+        // Create object with headers as keys
         const row = {};
         headers.forEach((header, index) => {
             let value = fields[index] || '';
+            // Try to convert numeric strings to numbers
             if (value && !isNaN(value) && value.trim() !== '') {
                 value = parseFloat(value);
             }
             row[header] = value;
         });
+        
         rows.push(row);
     }
+    
     return rows;
 }
 
 async function fetchSheet(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Pass the sheetId parameter to the API
-        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&sheetId=${PL21_SHEET_ID}&format=csv&cb=${cacheBuster}`;
+        // Directly fetch from Google Sheets using the public CSV export URL
+        const url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&cb=${cacheBuster}`;
         
         console.log(`📡 Fetching ${sheetName} from PL21 sheet...`);
         
@@ -125,8 +133,9 @@ function getFlagEmoji(country) {
 }
 
 async function loadArchiveData() {
-    console.log('📦 Loading PL21 archive data from sheet:', PL21_SHEET_ID);
+    console.log('📦 Loading PL21 archive data from sheet:', ARCHIVE_SHEET_ID);
 
+    // Fetch all sheets from the PL21 sheet
     const [
         driverMaster,
         driverMovement,
@@ -251,6 +260,7 @@ async function loadArchiveData() {
     });
     console.log('🏎️ PL21 Drivers loaded:', drivers.length);
 
+    // Assign drivers to teams
     drivers.forEach(driver => {
         const team = teamMap[driver.currentTeam];
         if (team) team.drivers.push(driver);
@@ -265,6 +275,7 @@ async function loadArchiveData() {
         const lapsRow = calendarRaw[1];
         const raceKeys = Object.keys(raceNamesRow).filter(key => key !== 'Round Date' && key !== 'col0');
         
+        // Determine which rounds have results
         const roundsWithResults = new Set();
         if (raceResults && raceResults.length > 0) {
             for (let roundNum = 1; roundNum <= raceKeys.length; roundNum++) {
@@ -278,6 +289,7 @@ async function loadArchiveData() {
         }
         console.log('📅 PL21 Rounds with results:', Array.from(roundsWithResults));
 
+        // Determine sprint rounds
         const sprintRoundsMap = {};
         if (sprintResults && sprintResults.length > 0) {
             const headerRow = sprintResults[0];
@@ -512,6 +524,7 @@ async function loadArchiveData() {
         console.log('📊 Top driver:', driverStandings[0].name, driverStandings[0].points);
     }
 
+    // ========== BUILD FINAL DATA ==========
     const ARCHIVE_DATA = {
         drivers,
         teams: Object.values(teamMap).filter(t => t.drivers.length > 0),
