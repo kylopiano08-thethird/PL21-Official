@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('gridView').style.display = 'block';
     document.getElementById('seasonDetailView').style.display = 'none';
     
-    // Set up season card click handlers - using event delegation
+    // Set up season card click handlers
     document.getElementById('archiveGrid').addEventListener('click', function(e) {
         const card = e.target.closest('.archive-card');
         if (!card) return;
@@ -42,12 +42,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Check if data is already loaded from archive-data-loader.js
+    // Check if data is already loaded
     if (window.ARCHIVE_DATA) {
-        console.log('📄 Data already loaded, storing...');
+        console.log('📄 Data already loaded');
     } else {
-        console.log('📄 Waiting for data to load from archive-data-loader.js...');
-        // The archive-data-loader.js will set window.ARCHIVE_DATA directly
+        console.log('📄 Waiting for archive-data-loader to load data...');
     }
 });
 
@@ -62,14 +61,14 @@ function loadSeason2021() {
     document.getElementById('gridView').style.display = 'none';
     document.getElementById('seasonDetailView').style.display = 'block';
     
-    // Check if data is available from archive-data-loader.js
+    // Check if data is available
     if (window.ARCHIVE_DATA) {
-        console.log('📄 Using stored data from archive-data-loader.js');
+        console.log('📄 Using stored data');
         renderSeasonDetail(window.ARCHIVE_DATA);
         if (loading) loading.style.display = 'none';
     } else {
         // Wait for data if not ready yet
-        console.log('📄 Waiting for archive-data-loader.js to load data...');
+        console.log('📄 Waiting for data to load...');
         const checkData = setInterval(() => {
             if (window.ARCHIVE_DATA) {
                 clearInterval(checkData);
@@ -83,7 +82,7 @@ function loadSeason2021() {
         setTimeout(() => {
             clearInterval(checkData);
             if (!window.ARCHIVE_DATA) {
-                console.error('📄 Data failed to load from archive-data-loader.js');
+                console.error('📄 Data failed to load');
                 if (loading) loading.style.display = 'none';
                 document.getElementById('seasonDetailView').innerHTML = `
                     <div style="text-align:center;padding:3rem;color:#777;">
