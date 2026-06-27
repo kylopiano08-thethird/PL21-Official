@@ -68,10 +68,11 @@ function parseCSV(csvText) {
     return rows;
 }
 
+// Use the MAIN proxy with season=archive parameter
 async function fetchArchiveSheetAsCSV(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Use the SAME proxy with season=archive parameter
+        // Use the main /api/sheets with season=archive
         const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&season=archive&cb=${cacheBuster}`;
         
         console.log(`📡 [ARCHIVE] Fetching ${sheetName} as CSV...`);
@@ -93,7 +94,7 @@ async function fetchArchiveSheetAsCSV(sheetName) {
 async function fetchArchiveSheetAsJSON(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Use the SAME proxy with season=archive parameter
+        // Use the main /api/sheets with season=archive
         const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=json&season=archive&cb=${cacheBuster}`;
         
         console.log(`📡 [ARCHIVE] Fetching ${sheetName} as JSON...`);
