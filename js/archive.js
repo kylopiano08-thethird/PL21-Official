@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set up season card click handlers - using event delegation
     document.getElementById('archiveGrid').addEventListener('click', function(e) {
-        // Find the closest .archive-card ancestor
         const card = e.target.closest('.archive-card');
         if (!card) return;
         
@@ -43,16 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Pre-load PL21 data
-    if (typeof loadArchiveData === 'function') {
-        loadArchiveData().then((data) => {
-            console.log('📄 PL21 data pre-loaded');
-            window.ARCHIVE_DATA = data;
-        }).catch(err => {
-            console.error('📄 Error pre-loading data:', err);
-        });
+    // Check if data is already loaded from archive-data-loader.js
+    if (window.ARCHIVE_DATA) {
+        console.log('📄 Data already loaded, storing...');
     } else {
-        console.error('📄 loadArchiveData function not found');
+        console.log('📄 Waiting for data to load from archive-data-loader.js...');
+        // The archive-data-loader.js will set window.ARCHIVE_DATA directly
     }
 });
 
@@ -67,27 +62,38 @@ function loadSeason2021() {
     document.getElementById('gridView').style.display = 'none';
     document.getElementById('seasonDetailView').style.display = 'block';
     
-    // If data is already loaded, render it
+    // Check if data is available from archive-data-loader.js
     if (window.ARCHIVE_DATA) {
-        console.log('📄 Using pre-loaded data');
+        console.log('📄 Using stored data from archive-data-loader.js');
         renderSeasonDetail(window.ARCHIVE_DATA);
         if (loading) loading.style.display = 'none';
     } else {
-        // Otherwise load and render
-        console.log('📄 Loading data on demand');
-        if (typeof loadArchiveData === 'function') {
-            loadArchiveData().then((data) => {
-                window.ARCHIVE_DATA = data;
-                renderSeasonDetail(data);
+        // Wait for data if not ready yet
+        console.log('📄 Waiting for archive-data-loader.js to load data...');
+        const checkData = setInterval(() => {
+            if (window.ARCHIVE_DATA) {
+                clearInterval(checkData);
+                console.log('📄 Data now available, rendering...');
+                renderSeasonDetail(window.ARCHIVE_DATA);
                 if (loading) loading.style.display = 'none';
-            }).catch(err => {
-                console.error('📄 Error loading data:', err);
+            }
+        }, 500);
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            clearInterval(checkData);
+            if (!window.ARCHIVE_DATA) {
+                console.error('📄 Data failed to load from archive-data-loader.js');
                 if (loading) loading.style.display = 'none';
-            });
-        } else {
-            console.error('📄 loadArchiveData function not found');
-            if (loading) loading.style.display = 'none';
-        }
+                document.getElementById('seasonDetailView').innerHTML = `
+                    <div style="text-align:center;padding:3rem;color:#777;">
+                        <h2>⚠️ Failed to load data</h2>
+                        <p>Please check the console for errors and ensure your Google Sheet is accessible.</p>
+                        <button onclick="location.reload()" style="margin-top:1rem;padding:0.5rem 2rem;background:#860000;color:white;border:none;border-radius:4px;cursor:pointer;">Retry</button>
+                    </div>
+                `;
+            }
+        }, 10000);
     }
 }
 
@@ -100,7 +106,7 @@ function renderSeasonDetail(data) {
     }
     
     const { drivers, teams, calendar, results, standings } = data;
-    const completedRaces = results.filter(r => r.classification && r.classification.length > 0);
+    const completedRaces = results ? results.filter(r => r.classification && r.classification.length > 0) : [];
     
     // Season Header
     document.getElementById('racesCount').textContent = `${completedRaces.length} Races`;
@@ -138,14 +144,16 @@ function renderSeasonDetail(data) {
     
     const flHolders = new Set();
     completedRaces.forEach(race => {
-        race.classification.forEach(r => {
-            if (r.hasFastestLap) flHolders.add(r.driver);
-        });
+        if (race.classification) {
+            race.classification.forEach(r => {
+                if (r.hasFastestLap) flHolders.add(r.driver);
+            });
+        }
     });
     document.getElementById('statFLHolders').textContent = flHolders.size;
     document.getElementById('statTeams').textContent = teams ? teams.length : 0;
     
-    const totalPossibleRaces = calendar.filter(r => r.status === 'completed').length;
+    const totalPossibleRaces = calendar ? calendar.filter(r => r.status === 'completed').length : 0;
     const attendanceRate = totalPossibleRaces > 0 ? Math.round((completedRaces.length / totalPossibleRaces) * 100) : 0;
     document.getElementById('statAttendance').textContent = `${attendanceRate}%`;
 
@@ -170,6 +178,8 @@ function renderSeasonDetail(data) {
                 <td>${ptsPerRace}</td>
             </tr>`;
         }).join('');
+    } else {
+        driverBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#777;padding:1rem;">No driver data available</td></tr>';
     }
 
     // Constructor Standings
@@ -192,13 +202,17 @@ function renderSeasonDetail(data) {
                 <td class="points-cell">${t.totalPoints || 0}</td>
             </tr>`;
         }).join('');
+    } else {
+        constBody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#777;padding:1rem;">No constructor data available</td></tr>';
     }
 
     // Race Results Grid
     renderRaceResults(completedRaces);
 
     // Season Stats
-    renderSeasonStats(standings.drivers || []);
+    if (standings.drivers) {
+        renderSeasonStats(standings.drivers);
+    }
 
     // Advanced Stats
     renderAdvancedStats(data);
@@ -332,14 +346,16 @@ function renderAdvancedStats(data) {
     if (!container) return;
     
     const { results, teams, drivers, calendar } = data;
-    const completedRaces = results.filter(r => r.classification && r.classification.length > 0);
+    const completedRaces = results ? results.filter(r => r.classification && r.classification.length > 0) : [];
     const champion = data.standings?.drivers?.[0];
     
     let totalDNFs = 0;
     completedRaces.forEach(race => {
-        race.classification.forEach(r => {
-            if (!r.positionNumber) totalDNFs++;
-        });
+        if (race.classification) {
+            race.classification.forEach(r => {
+                if (!r.positionNumber) totalDNFs++;
+            });
+        }
     });
 
     const totalLaps = completedRaces.reduce((sum, r) => sum + (parseInt(r.laps) || 0), 0);
@@ -366,7 +382,7 @@ function renderAdvancedStats(data) {
             </div>
             <div class="stat-row">
                 <span class="label">Attendance Rate</span>
-                <span class="value">${calendar.length > 0 ? Math.round((completedRaces.length / calendar.length) * 100) : 0}%</span>
+                <span class="value">${calendar && calendar.length > 0 ? Math.round((completedRaces.length / calendar.length) * 100) : 0}%</span>
             </div>
         </div>
 
@@ -378,11 +394,11 @@ function renderAdvancedStats(data) {
             </div>
             <div class="stat-row">
                 <span class="label">Most Wins (Constructor)</span>
-                <span class="value highlight">${constructors.length > 0 ? constructors.sort((a, b) => b.totalWins - a.totalWins)[0]?.name || '—' : '—'} (${constructors.length > 0 ? constructors.sort((a, b) => b.totalWins - a.totalWins)[0]?.totalWins || 0 : 0})</span>
+                <span class="value highlight">${constructors.length > 0 ? [...constructors].sort((a, b) => b.totalWins - a.totalWins)[0]?.name || '—' : '—'} (${constructors.length > 0 ? [...constructors].sort((a, b) => b.totalWins - a.totalWins)[0]?.totalWins || 0 : 0})</span>
             </div>
             <div class="stat-row">
                 <span class="label">Most Poles (Constructor)</span>
-                <span class="value highlight">${constructors.length > 0 ? constructors.sort((a, b) => b.totalPoles - a.totalPoles)[0]?.name || '—' : '—'} (${constructors.length > 0 ? constructors.sort((a, b) => b.totalPoles - a.totalPoles)[0]?.totalPoles || 0 : 0})</span>
+                <span class="value highlight">${constructors.length > 0 ? [...constructors].sort((a, b) => b.totalPoles - a.totalPoles)[0]?.name || '—' : '—'} (${constructors.length > 0 ? [...constructors].sort((a, b) => b.totalPoles - a.totalPoles)[0]?.totalPoles || 0 : 0})</span>
             </div>
             <div class="stat-row">
                 <span class="label">Constructor Championship Gap</span>
@@ -398,7 +414,7 @@ function renderAdvancedStats(data) {
             </div>
             <div class="stat-row">
                 <span class="label">Most Consistent Finisher</span>
-                <span class="value highlight">${drivers && drivers.length > 0 ? drivers.sort((a, b) => (b.points / 12) - (a.points / 12))[0]?.name || '—' : '—'}</span>
+                <span class="value highlight">${drivers && drivers.length > 0 ? [...drivers].sort((a, b) => (b.points / 12) - (a.points / 12))[0]?.name || '—' : '—'}</span>
             </div>
             <div class="stat-row">
                 <span class="label">Driver Championship Gap</span>
@@ -410,7 +426,7 @@ function renderAdvancedStats(data) {
             <h3>Race Statistics</h3>
             <div class="stat-row">
                 <span class="label">Most Wins at Home</span>
-                <span class="value highlight">${drivers && drivers.length > 0 ? drivers.sort((a, b) => b.wins - a.wins)[0]?.name || '—' : '—'} (${drivers && drivers.length > 0 ? drivers.sort((a, b) => b.wins - a.wins)[0]?.wins || 0 : 0} wins)</span>
+                <span class="value highlight">${drivers && drivers.length > 0 ? [...drivers].sort((a, b) => b.wins - a.wins)[0]?.name || '—' : '—'} (${drivers && drivers.length > 0 ? [...drivers].sort((a, b) => b.wins - a.wins)[0]?.wins || 0 : 0} wins)</span>
             </div>
             <div class="stat-row">
                 <span class="label">Most Different Winners</span>
@@ -486,7 +502,7 @@ function openModal(round) {
     const sprintTab = document.querySelector('.modal-session-tab[data-session="sprint"]');
     const sprintBody = document.getElementById('modalSprintBody');
     if (race.hasSprint && race.sprint && race.sprint.length > 0) {
-        sprintTab.style.display = 'block';
+        if (sprintTab) sprintTab.style.display = 'block';
         sprintBody.innerHTML = race.sprint.map(r => {
             const posClass = r.positionNumber === 1 ? 'pos-1' : r.positionNumber === 2 ? 'pos-2' : r.positionNumber === 3 ? 'pos-3' : '';
             const isDNF = !r.positionNumber;
@@ -498,21 +514,24 @@ function openModal(round) {
             </tr>`;
         }).join('');
     } else {
-        sprintTab.style.display = 'none';
+        if (sprintTab) sprintTab.style.display = 'none';
         sprintBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#777;padding:1rem;">No sprint race</td></tr>';
     }
 
+    // Activate race tab by default
     document.querySelectorAll('.modal-session-tab').forEach(t => t.classList.remove('active'));
-    document.querySelector('.modal-session-tab[data-session="race"]').classList.add('active');
+    const raceTab = document.querySelector('.modal-session-tab[data-session="race"]');
+    if (raceTab) raceTab.classList.add('active');
     document.querySelectorAll('.modal-session-content').forEach(c => c.classList.remove('active'));
-    document.getElementById('modalRace').classList.add('active');
+    const modalRace = document.getElementById('modalRace');
+    if (modalRace) modalRace.classList.add('active');
 
-    modal.classList.add('active');
+    if (modal) modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
 
 function closeModal() {
-    modal.classList.remove('active');
+    if (modal) modal.classList.remove('active');
     document.body.style.overflow = '';
 }
 
@@ -535,8 +554,15 @@ document.querySelectorAll('.modal-session-tab').forEach(tab => {
 
         document.querySelectorAll('.modal-session-content').forEach(c => c.classList.remove('active'));
         const target = this.dataset.session;
-        if (target === 'race') document.getElementById('modalRace').classList.add('active');
-        else if (target === 'qualifying') document.getElementById('modalQualifying').classList.add('active');
-        else if (target === 'sprint') document.getElementById('modalSprint').classList.add('active');
+        if (target === 'race') {
+            const el = document.getElementById('modalRace');
+            if (el) el.classList.add('active');
+        } else if (target === 'qualifying') {
+            const el = document.getElementById('modalQualifying');
+            if (el) el.classList.add('active');
+        } else if (target === 'sprint') {
+            const el = document.getElementById('modalSprint');
+            if (el) el.classList.add('active');
+        }
     });
 });
