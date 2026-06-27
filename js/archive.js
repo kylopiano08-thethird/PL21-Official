@@ -105,7 +105,10 @@ function renderSeasonDetail(data) {
     }
     
     const { drivers, teams, calendar, results, standings } = data;
-    const completedRaces = results ? results.filter(r => r.classification && r.classification.length > 0) : [];
+    
+    // Sort results by round number before filtering
+    const sortedResults = results ? [...results].sort((a, b) => a.round - b.round) : [];
+    const completedRaces = sortedResults.filter(r => r.classification && r.classification.length > 0);
     
     // Season Header
     document.getElementById('racesCount').textContent = `${completedRaces.length} Races`;
@@ -151,12 +154,41 @@ function renderSeasonDetail(data) {
     });
     document.getElementById('statFLHolders').textContent = flHolders.size;
     document.getElementById('statTeams').textContent = teams ? teams.length : 0;
-    
-    const totalPossibleRaces = calendar ? calendar.filter(r => r.status === 'completed').length : 0;
-    const attendanceRate = totalPossibleRaces > 0 ? Math.round((completedRaces.length / totalPossibleRaces) * 100) : 0;
+
+    // Calculate attendance rate properly
+    let attendanceRate = 0;
+    if (drivers && drivers.length > 0 && calendar && calendar.length > 0) {
+        let totalAttendances = 0;
+        let totalPossibleAttendances = 0;
+        
+        // For each driver, check each round
+        drivers.forEach(driver => {
+            calendar.forEach(race => {
+                const roundNum = race.round;
+                // Check if driver was signed up for this round (has a team in driver movement)
+                const movement = driver.movement || {};
+                const roundKey = `round${roundNum}`;
+                const hasTeam = movement[roundKey] && movement[roundKey] !== '';
+                
+                if (hasTeam) {
+                    totalPossibleAttendances++;
+                    // Check if they have results for this round
+                    const raceResult = completedRaces.find(r => r.round === roundNum);
+                    if (raceResult) {
+                        const hasResult = raceResult.classification.some(r => r.driver === driver.name);
+                        if (hasResult) {
+                            totalAttendances++;
+                        }
+                    }
+                }
+            });
+        });
+        
+        attendanceRate = totalPossibleAttendances > 0 ? Math.round((totalAttendances / totalPossibleAttendances) * 100) : 0;
+    }
     document.getElementById('statAttendance').textContent = `${attendanceRate}%`;
 
-    // Driver Standings
+    // Driver Standings (already sorted by points)
     const driverBody = document.getElementById('driverStandingsBody');
     if (standings.drivers && standings.drivers.length > 0) {
         driverBody.innerHTML = standings.drivers.map((d, i) => {
@@ -181,7 +213,7 @@ function renderSeasonDetail(data) {
         driverBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#777;padding:1rem;">No driver data available</td></tr>';
     }
 
-    // Constructor Standings
+    // Constructor Standings (already sorted by points)
     const constBody = document.getElementById('constructorStandingsBody');
     if (standings.constructors && standings.constructors.length > 0) {
         constBody.innerHTML = standings.constructors.map((t, i) => {
@@ -205,7 +237,7 @@ function renderSeasonDetail(data) {
         constBody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#777;padding:1rem;">No constructor data available</td></tr>';
     }
 
-    // Race Results Grid
+    // Race Results Grid (sorted by round)
     renderRaceResults(completedRaces);
 
     // Season Stats
@@ -214,7 +246,7 @@ function renderSeasonDetail(data) {
     }
 
     // Advanced Stats
-    renderAdvancedStats(data);
+    renderAdvancedStats(data, completedRaces);
 }
 
 function renderRaceResults(races) {
@@ -226,9 +258,21 @@ function renderRaceResults(races) {
         return;
     }
     
-    grid.innerHTML = races.map(race => {
-        const winner = race.classification.find(r => r.positionNumber === 1);
-        const podium = race.classification.filter(r => r.positionNumber && r.positionNumber <= 3);
+    // Sort races by round number
+    const sortedRaces = [...races].sort((a, b) => a.round - b.round);
+    
+    grid.innerHTML = sortedRaces.map(race => {
+        // Sort classification by position
+        const sortedClassification = [...race.classification].sort((a, b) => {
+            // Put DNFs at the bottom
+            if (!a.positionNumber && !b.positionNumber) return 0;
+            if (!a.positionNumber) return 1;
+            if (!b.positionNumber) return -1;
+            return a.positionNumber - b.positionNumber;
+        });
+        
+        const winner = sortedClassification.find(r => r.positionNumber === 1);
+        const podium = sortedClassification.filter(r => r.positionNumber && r.positionNumber <= 3);
         
         return `<div class="result-card" data-round="${race.round}" data-race="${race.name}">
             <div class="race-header">
@@ -252,7 +296,7 @@ function renderRaceResults(races) {
             <div class="race-stats">
                 <span>${race.date || 'TBD'}</span>
                 ${race.hasSprint ? '<span>🏁 Sprint</span>' : ''}
-                <span>FL: ${race.classification.find(r => r.hasFastestLap)?.driver || '—'}</span>
+                <span>FL: ${sortedClassification.find(r => r.hasFastestLap)?.driver || '—'}</span>
             </div>
             <div class="click-hint">Click for full results →</div>
         </div>`;
@@ -340,14 +384,14 @@ function renderSeasonStats(drivers) {
     `;
 }
 
-function renderAdvancedStats(data) {
+function renderAdvancedStats(data, completedRaces) {
     const container = document.getElementById('advancedStats');
     if (!container) return;
     
     const { results, teams, drivers, calendar } = data;
-    const completedRaces = results ? results.filter(r => r.classification && r.classification.length > 0) : [];
     const champion = data.standings?.drivers?.[0];
     
+    // Calculate total DNFs (drivers who didn't finish)
     let totalDNFs = 0;
     completedRaces.forEach(race => {
         if (race.classification) {
@@ -357,7 +401,15 @@ function renderAdvancedStats(data) {
         }
     });
 
-    const totalLaps = completedRaces.reduce((sum, r) => sum + (parseInt(r.laps) || 0), 0);
+    // Calculate total laps completed properly
+    let totalLaps = 0;
+    completedRaces.forEach(race => {
+        const lapCount = parseInt(race.laps) || 0;
+        // Count drivers who finished (have a position number)
+        const finishers = race.classification.filter(r => r.positionNumber !== null && r.positionNumber !== undefined);
+        totalLaps += lapCount * finishers.length;
+    });
+
     const constructors = data.standings?.constructors || [];
 
     container.innerHTML = `
@@ -369,7 +421,7 @@ function renderAdvancedStats(data) {
             </div>
             <div class="stat-row">
                 <span class="label">Total Laps Completed</span>
-                <span class="value">${totalLaps}</span>
+                <span class="value">${totalLaps.toLocaleString()}</span>
             </div>
             <div class="stat-row">
                 <span class="label">DNFs</span>
@@ -381,7 +433,7 @@ function renderAdvancedStats(data) {
             </div>
             <div class="stat-row">
                 <span class="label">Attendance Rate</span>
-                <span class="value">${calendar && calendar.length > 0 ? Math.round((completedRaces.length / calendar.length) * 100) : 0}%</span>
+                <span class="value">${document.getElementById('statAttendance').textContent}</span>
             </div>
         </div>
 
@@ -424,7 +476,7 @@ function renderAdvancedStats(data) {
         <div class="season-advanced-card">
             <h3>Race Statistics</h3>
             <div class="stat-row">
-                <span class="label">Most Wins at Home</span>
+                <span class="label">Most Wins</span>
                 <span class="value highlight">${drivers && drivers.length > 0 ? [...drivers].sort((a, b) => b.wins - a.wins)[0]?.name || '—' : '—'} (${drivers && drivers.length > 0 ? [...drivers].sort((a, b) => b.wins - a.wins)[0]?.wins || 0 : 0} wins)</span>
             </div>
             <div class="stat-row">
@@ -459,9 +511,17 @@ function openModal(round) {
     document.getElementById('modalTitle').textContent = race.name || `Round ${round}`;
     document.getElementById('modalSubtitle').textContent = `Round ${round} · ${race.date || 'TBD'}`;
 
-    const winner = race.classification.find(r => r.positionNumber === 1);
+    // Sort classification by position
+    const sortedClassification = [...race.classification].sort((a, b) => {
+        if (!a.positionNumber && !b.positionNumber) return 0;
+        if (!a.positionNumber) return 1;
+        if (!b.positionNumber) return -1;
+        return a.positionNumber - b.positionNumber;
+    });
+    
+    const winner = sortedClassification.find(r => r.positionNumber === 1);
     const pole = race.qualifying.find(r => r.positionNumber === 1);
-    const fl = race.classification.find(r => r.hasFastestLap);
+    const fl = sortedClassification.find(r => r.hasFastestLap);
     
     document.getElementById('modalWinner').textContent = winner?.driver || '—';
     document.getElementById('modalPole').textContent = pole?.driver || '—';
@@ -469,8 +529,8 @@ function openModal(round) {
     document.getElementById('modalGap').textContent = '—';
 
     const raceBody = document.getElementById('modalRaceBody');
-    if (race.classification && race.classification.length > 0) {
-        raceBody.innerHTML = race.classification.map(r => {
+    if (sortedClassification && sortedClassification.length > 0) {
+        raceBody.innerHTML = sortedClassification.map(r => {
             const posClass = r.positionNumber === 1 ? 'pos-1' : r.positionNumber === 2 ? 'pos-2' : r.positionNumber === 3 ? 'pos-3' : '';
             const isDNF = !r.positionNumber;
             return `<tr class="${isDNF ? 'dnf' : posClass}">
@@ -486,7 +546,9 @@ function openModal(round) {
 
     const qualiBody = document.getElementById('modalQualiBody');
     if (race.qualifying && race.qualifying.length > 0) {
-        qualiBody.innerHTML = race.qualifying.map(r => {
+        // Sort qualifying by position
+        const sortedQuali = [...race.qualifying].sort((a, b) => a.positionNumber - b.positionNumber);
+        qualiBody.innerHTML = sortedQuali.map(r => {
             const posClass = r.positionNumber === 1 ? 'pos-1' : r.positionNumber === 2 ? 'pos-2' : r.positionNumber === 3 ? 'pos-3' : '';
             return `<tr class="${posClass}">
                 <td>${r.positionNumber}</td>
@@ -501,8 +563,15 @@ function openModal(round) {
     const sprintTab = document.querySelector('.modal-session-tab[data-session="sprint"]');
     const sprintBody = document.getElementById('modalSprintBody');
     if (race.hasSprint && race.sprint && race.sprint.length > 0) {
+        // Sort sprint by position
+        const sortedSprint = [...race.sprint].sort((a, b) => {
+            if (!a.positionNumber && !b.positionNumber) return 0;
+            if (!a.positionNumber) return 1;
+            if (!b.positionNumber) return -1;
+            return a.positionNumber - b.positionNumber;
+        });
         if (sprintTab) sprintTab.style.display = 'block';
-        sprintBody.innerHTML = race.sprint.map(r => {
+        sprintBody.innerHTML = sortedSprint.map(r => {
             const posClass = r.positionNumber === 1 ? 'pos-1' : r.positionNumber === 2 ? 'pos-2' : r.positionNumber === 3 ? 'pos-3' : '';
             const isDNF = !r.positionNumber;
             return `<tr class="${isDNF ? 'dnf' : posClass}">
