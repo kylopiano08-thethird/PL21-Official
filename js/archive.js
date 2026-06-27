@@ -513,7 +513,7 @@ function renderAdvancedStats(data, completedRaces) {
             </div>
             <div class="stat-row">
                 <span class="label">Most Consistent Finisher</span>
-                <span class="value highlight">${drivers && drivers.length > 0 ? [...drivers].sort((a, b) => (b.points / 12) - (a.points / 12))[0]?.name || '—' : '—'}</span>
+                <span class="value highlight">ili020510</span>
             </div>
             <div class="stat-row">
                 <span class="label">Driver Championship Gap</span>
