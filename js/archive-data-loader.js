@@ -391,7 +391,7 @@ async function loadArchiveData() {
 
         const calendar = [];
 
-        if (calendarRaw.length >= 6) {
+        if (calendarRaw.length >= 5) {
             // Row 0 contains race names and dates
             const raceNamesRow = calendarRaw[0];
             // Row 1 contains laps (row 5 in the sheet)
