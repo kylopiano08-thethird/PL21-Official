@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PL22 - Season Archive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/archive.css">
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/sgQbxyDm/PL22Logo.png">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/sgQbxyDm/PL22Logo.png">
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="index.html" class="logo">
+                <img src="https://i.postimg.cc/sgQbxyDm/PL22Logo.png" alt="PL22 Logo" class="logo-image">
+            </a>
+            <div class="countdown-container" id="countdown-container" style="display: none;">
+                <span class="countdown-label">NEXT RACE</span>
+                <span class="countdown-timer" id="countdown-timer">--d --h --m</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">HOME</a>
+                <a href="championship.html">CHAMPIONSHIP</a>
+                <a href="results.html">RESULTS</a>
+                <a href="stats.html">STATS</a>
+                <a href="calendar.html">CALENDAR</a>
+                <a href="teams.html">TEAMS</a>
+                <a href="archive.html" class="active">ARCHIVE</a>
+            </div>
+        </nav>
+
+        <!-- ===== GRID VIEW ===== -->
+        <div id="gridView">
+            <div class="page-header">
+                <div class="page-eyebrow">SEASON ARCHIVE</div>
+                <h1 class="page-title">PREVIOUS <span>SEASONS</span></h1>
+            </div>
+
+            <div class="archive-grid" id="archiveGrid">
+                <!-- PL21 - Only Season -->
+                <div class="archive-card archive-featured" data-season="2021">
+                    <div class="archive-season-badge">🏆 COMPLETED SEASON</div>
+                    <div class="archive-card-title">PL21</div>
+                    <div class="archive-card-subtitle">Inaugural Season · 12 Races</div>
+                    <div style="margin-bottom: 1rem;">
+                        <span class="champion">🏆 Champion:</span> 
+                        <span style="font-weight: 600;">Max Verstappen</span>
+                        <span style="color: #777; margin-left: 0.5rem;">(Red Bull Racing)</span>
+                    </div>
+                    <div class="archive-card-stats">
+                        <div class="archive-stat">
+                            <div class="archive-stat-value">12</div>
+                            <div class="archive-stat-label">Races</div>
+                        </div>
+                        <div class="archive-stat">
+                            <div class="archive-stat-value">6</div>
+                            <div class="archive-stat-label">Different Winners</div>
+                        </div>
+                        <div class="archive-stat">
+                            <div class="archive-stat-value">8</div>
+                            <div class="archive-stat-label">Teams</div>
+                        </div>
+                    </div>
+                    <div class="view-link">View Season →</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SEASON DETAIL VIEW ===== -->
+        <div id="seasonDetailView" style="display: none;">
+            <button class="back-link" id="backToGrid">← Back to Archives</button>
+
+            <div class="season-header" id="seasonHeader">
+                <div class="season-header-top">
+                    <div class="season-title-group">
+                        <span class="season-badge">Completed Season</span>
+                        <h1 class="season-title" id="seasonTitle">PL21</h1>
+                    </div>
+                    <div class="season-meta" id="seasonMeta">
+                        <span class="season-meta-item" id="racesCount">0 Races</span>
+                        <span class="season-meta-item" id="teamsCount">0 Teams</span>
+                        <span class="season-meta-item" id="driversCount">0 Drivers</span>
+                        <span class="season-meta-item" id="winnersCount">0 Winners</span>
+                    </div>
+                </div>
+
+                <div class="season-champion" id="championSection">
+                    <span class="trophy">🏆</span>
+                    <div class="champ-info">
+                        <div class="label">Season Champion</div>
+                        <div class="name" id="championName">—</div>
+                        <div class="team" id="championTeam">—</div>
+                    </div>
+                    <div class="champ-stats" id="championStats">
+                        <div class="champ-stat">
+                            <div class="number" id="champPoints">0</div>
+                            <div class="label">Points</div>
+                        </div>
+                        <div class="champ-stat">
+                            <div class="number" id="champWins">0</div>
+                            <div class="label">Wins</div>
+                        </div>
+                        <div class="champ-stat">
+                            <div class="number" id="champPodiums">0</div>
+                            <div class="label">Podiums</div>
+                        </div>
+                        <div class="champ-stat">
+                            <div class="number" id="champPoles">0</div>
+                            <div class="label">Poles</div>
+                        </div>
+                        <div class="champ-stat">
+                            <div class="number" id="champFL">0</div>
+                            <div class="label">Fastest Laps</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="season-stats-grid" id="seasonStatsGrid">
+                <div class="season-stat-card">
+                    <div class="value" id="statChampionPoints">0</div>
+                    <div class="label">Champion Points</div>
+                </div>
+                <div class="season-stat-card">
+                    <div class="value" id="statDifferentWinners">0</div>
+                    <div class="label">Different Winners</div>
+                </div>
+                <div class="season-stat-card">
+                    <div class="value" id="statPoleSitters">0</div>
+                    <div class="label">Pole Sitters</div>
+                </div>
+                <div class="season-stat-card">
+                    <div class="value" id="statFLHolders">0</div>
+                    <div class="label">Fastest Lap Holders</div>
+                </div>
+                <div class="season-stat-card">
+                    <div class="value" id="statTeams">0</div>
+                    <div class="label">Teams</div>
+                </div>
+                <div class="season-stat-card">
+                    <div class="value" id="statAttendance">0%</div>
+                    <div class="label">Attendance Rate</div>
+                </div>
+            </div>
+
+            <div class="section-tabs">
+                <button class="section-tab active" data-tab="standings">Standings</button>
+                <button class="section-tab" data-tab="races">Race Results</button>
+                <button class="section-tab" data-tab="stats">Season Stats</button>
+                <button class="section-tab" data-tab="advanced">Advanced Stats</button>
+            </div>
+
+            <div id="standings" class="tab-content active">
+                <div class="standings-container">
+                    <div class="standings-subtitle">Driver Championship</div>
+                    <table class="standings-table">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Driver</th>
+                                <th>Team</th>
+                                <th>Wins</th>
+                                <th>Podiums</th>
+                                <th>Poles</th>
+                                <th>FL</th>
+                                <th>Pts</th>
+                                <th>Pts/Race</th>
+                            </tr>
+                        </thead>
+                        <tbody id="driverStandingsBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="standings-container">
+                    <div class="standings-subtitle">Constructor Championship</div>
+                    <table class="standings-table">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Constructor</th>
+                                <th>Drivers</th>
+                                <th>Wins</th>
+                                <th>Podiums</th>
+                                <th>Poles</th>
+                                <th>FL</th>
+                                <th>Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody id="constructorStandingsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="races" class="tab-content">
+                <div class="results-grid" id="resultsGrid"></div>
+            </div>
+
+            <div id="stats" class="tab-content">
+                <div class="stats-leaderboards" id="statsLeaderboards"></div>
+            </div>
+
+            <div id="advanced" class="tab-content">
+                <div class="season-advanced-stats" id="advancedStats"></div>
+            </div>
+        </div>
+
+        <footer>
+            <span>PL22 Virtual Racing League — Season 2</span>
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+                <a href="#">Rules</a>
+                <a href="#">Standings</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="raceModal">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">✕</button>
+            <div class="modal-title" id="modalTitle">—</div>
+            <div class="modal-subtitle" id="modalSubtitle">—</div>
+
+            <div class="modal-stats">
+                <div class="modal-stat">
+                    <div class="value" id="modalWinner">—</div>
+                    <div class="label">Winner</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="value" id="modalPole">—</div>
+                    <div class="label">Pole</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="value" id="modalFL">—</div>
+                    <div class="label">Fastest Lap</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="value" id="modalGap">—</div>
+                    <div class="label">Winning Gap</div>
+                </div>
+            </div>
+
+            <div class="modal-session-tabs">
+                <button class="modal-session-tab active" data-session="race">Race</button>
+                <button class="modal-session-tab" data-session="qualifying">Qualifying</button>
+                <button class="modal-session-tab" data-session="sprint">Sprint</button>
+            </div>
+
+            <div id="modalRace" class="modal-session-content active">
+                <table class="modal-table">
+                    <thead>
+                        <tr>
+                            <th>Pos</th>
+                            <th>Driver</th>
+                            <th>Team</th>
+                            <th>Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalRaceBody"></tbody>
+                </table>
+            </div>
+
+            <div id="modalQualifying" class="modal-session-content">
+                <table class="modal-table">
+                    <thead>
+                        <tr>
+                            <th>Pos</th>
+                            <th>Driver</th>
+                            <th>Team</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalQualiBody"></tbody>
+                </table>
+            </div>
+
+            <div id="modalSprint" class="modal-session-content">
+                <table class="modal-table">
+                    <thead>
+                        <tr>
+                            <th>Pos</th>
+                            <th>Driver</th>
+                            <th>Team</th>
+                            <th>Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalSprintBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data-loader-archive.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/archive.js"></script>
+    <script src="js/countdown.js"></script>
+</body>
+</html>
