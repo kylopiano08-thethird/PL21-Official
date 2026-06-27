@@ -1,7 +1,8 @@
-// js/archive-data-loader.js - Data loader for archive page (PL21 Previous Season)
+// js/archive-data-loader.js - Data loader for archive page
 console.log('📦 archive-data-loader.js loaded');
 
-const ARCHIVE_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg'; // PL21 Previous Season
+// This is the PL21 (Previous Season) Sheet ID
+const ARCHIVE_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
 
 // Function to parse CSV text properly
 function parseCSV(csvText) {
@@ -70,74 +71,132 @@ function parseCSV(csvText) {
     return rows;
 }
 
-async function fetchArchiveSheetAsCSV(sheetName) {
+async function fetchArchiveSheetViaVercel(sheetName, format = 'json') {
     try {
         const cacheBuster = Date.now();
-        // Use the unified proxy with PL21 sheet ID
-        const url = `/api/sheets-proxy?sheet=${encodeURIComponent(sheetName)}&format=csv&sheetId=${ARCHIVE_SHEET_ID}&cb=${cacheBuster}`;
-        
-        console.log(`📡 Fetching ${sheetName} as CSV via proxy...`);
+        const url = `/api/google-sheets-proxy?sheet=${encodeURIComponent(sheetName)}&format=${format}&cb=${cacheBuster}`;
+        console.log(`📡 Fetching ${sheetName} via Vercel proxy (${format})...`);
         
         const res = await fetch(url);
-        
         if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
+            console.warn(`⚠️ Vercel proxy returned ${res.status}`);
+            return null;
         }
         
-        const csvText = await res.text();
-        return parseCSV(csvText);
+        if (format === 'csv') {
+            const text = await res.text();
+            if (text && !text.includes('<!DOCTYPE') && !text.includes('<html')) {
+                return parseCSV(text);
+            }
+            return null;
+        } else {
+            const json = await res.json();
+            const cols = json.table.cols.map(c => c.label || '');
+            const rows = json.table.rows;
+            
+            const result = rows.map(row => {
+                const obj = {};
+                row.c.forEach((cell, index) => {
+                    if (cell && cell.v !== null) {
+                        const colName = cols[index] || `col${index}`;
+                        obj[colName] = cell.v;
+                    }
+                });
+                return obj;
+            }).filter(row => Object.keys(row).length > 0);
+            
+            if (result.length > 0) {
+                console.log(`✅ ${sheetName} loaded via Vercel proxy (${result.length} rows)`);
+                return result;
+            }
+            return null;
+        }
     } catch (e) {
-        console.warn(`Failed to load ${sheetName} as CSV:`, e);
-        return [];
+        console.warn(`❌ Vercel proxy failed for ${sheetName}:`, e.message);
+        return null;
     }
 }
 
-async function fetchArchiveSheetAsJSON(sheetName) {
+async function fetchArchiveSheetDirect(sheetName, format = 'csv') {
     try {
         const cacheBuster = Date.now();
-        // Use the unified proxy with PL21 sheet ID
-        const url = `/api/sheets-proxy?sheet=${encodeURIComponent(sheetName)}&format=json&sheetId=${ARCHIVE_SHEET_ID}&cb=${cacheBuster}`;
-        
-        console.log(`📡 Fetching ${sheetName} as JSON via proxy...`);
-        
-        const res = await fetch(url);
-        
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
+        let url;
+        if (format === 'csv') {
+            url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/export?format=csv&id=${ARCHIVE_SHEET_ID}&sheet=${encodeURIComponent(sheetName)}&cache=${cacheBuster}`;
+        } else {
+            url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&cache=${cacheBuster}`;
         }
         
-        const json = await res.json();
-        const cols = json.table.cols.map(c => c.label || '');
-        const rows = json.table.rows;
+        console.log(`📡 Fetching ${sheetName} directly (${format})...`);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         
-        const result = rows.map(row => {
-            const obj = {};
-            row.c.forEach((cell, index) => {
-                if (cell && cell.v !== null) {
-                    const colName = cols[index] || `col${index}`;
-                    obj[colName] = cell.v;
-                }
-            });
-            return obj;
-        }).filter(row => Object.keys(row).length > 0);
-        
-        console.log(`✅ ${sheetName} loaded via proxy (${result.length} rows)`);
-        return result;
+        if (format === 'csv') {
+            const text = await res.text();
+            if (text && !text.includes('<!DOCTYPE') && !text.includes('<html')) {
+                return parseCSV(text);
+            }
+            return null;
+        } else {
+            const text = await res.text();
+            if (text.includes('/*O_o*/') || text.includes('<!DOCTYPE')) {
+                return null;
+            }
+            const jsonStr = text.replace(/^.*?\(/, '').replace(/\);$/, '');
+            const jsonData = JSON.parse(jsonStr);
+            const cols = jsonData.table.cols.map(c => c.label || '');
+            const rows = jsonData.table.rows;
+            
+            const result = rows.map(row => {
+                const obj = {};
+                row.c.forEach((cell, index) => {
+                    if (cell && cell.v !== null) {
+                        const colName = cols[index] || `col${index}`;
+                        obj[colName] = cell.v;
+                    }
+                });
+                return obj;
+            }).filter(row => Object.keys(row).length > 0);
+            
+            if (result.length > 0) {
+                console.log(`✅ ${sheetName} loaded directly (${result.length} rows)`);
+                return result;
+            }
+            return null;
+        }
     } catch (e) {
-        console.warn(`Failed to load ${sheetName} as JSON:`, e);
-        return [];
+        console.warn(`❌ Direct fetch failed for ${sheetName}:`, e.message);
+        return null;
     }
 }
 
 async function fetchArchiveSheet(sheetName) {
-    // Try JSON first
-    const jsonData = await fetchArchiveSheetAsJSON(sheetName);
-    if (jsonData && jsonData.length > 0) {
-        return jsonData;
+    // Try Vercel proxy first
+    let data = await fetchArchiveSheetViaVercel(sheetName, 'json');
+    if (data && data.length > 0) {
+        return data;
     }
     
-    console.log(`⚠️ JSON fetch returned no data for ${sheetName}, trying CSV...`);
-    return await fetchArchiveSheetAsCSV(sheetName);
+    // Try Vercel proxy as CSV
+    data = await fetchArchiveSheetViaVercel(sheetName, 'csv');
+    if (data && data.length > 0) {
+        return data;
+    }
+    
+    // Try direct fetch as JSON
+    data = await fetchArchiveSheetDirect(sheetName, 'json');
+    if (data && data.length > 0) {
+        return data;
+    }
+    
+    // Try direct fetch as CSV
+    data = await fetchArchiveSheetDirect(sheetName, 'csv');
+    if (data && data.length > 0) {
+        return data;
+    }
+    
+    console.warn(`❌ All fetch methods failed for ${sheetName}`);
+    return [];
 }
 
 function getFlagEmoji(country) {
@@ -192,7 +251,7 @@ async function loadArchiveData() {
         });
 
         if (driverMaster.length === 0) {
-            console.error('❌ No driver data found!');
+            console.error('❌ No driver data found! Check your sheet structure.');
             return createFallbackData();
         }
 

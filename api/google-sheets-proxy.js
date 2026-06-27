@@ -1,4 +1,4 @@
-// api/sheets-proxy.js - Unified Vercel serverless function for both sheets
+// api/google-sheets-proxy.js - Vercel serverless function
 export default async function handler(req, res) {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,21 +9,14 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
     
-    const { sheet, format = 'json', sheetId } = req.query;
+    const { sheet, format = 'json' } = req.query;
     
     if (!sheet) {
         return res.status(400).json({ error: 'Missing sheet parameter' });
     }
     
-    // Default to PL22 (current season) if no sheetId provided
-    // PL22: 1ECRV_5PiAFGBx9lfgKU_ZYdRSgUG4OpTEm9YzrxBvMI
-    // PL21: 1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg
-    let SHEET_ID = sheetId || '1ECRV_5PiAFGBx9lfgKU_ZYdRSgUG4OpTEm9YzrxBvMI';
-    
-    // If sheetId is 'pl21' or 'archive', use the PL21 sheet
-    if (sheetId === 'pl21' || sheetId === 'archive') {
-        SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
-    }
+    // This is the PL21 (Previous Season) Sheet ID
+    const SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
     
     try {
         let url;
@@ -34,24 +27,22 @@ export default async function handler(req, res) {
         }
         
         console.log(`📡 Proxying request to: ${url}`);
-        console.log(`📡 Using sheet ID: ${SHEET_ID}`);
         
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (compatible; Vercel/1.0)',
                 'Accept': format === 'csv' ? 'text/csv' : 'application/json'
             }
         });
         
         if (!response.ok) {
             console.error(`❌ Google Sheets API error: ${response.status}`);
-            return res.status(response.status).json({ 
-                error: `Google Sheets API error: ${response.status}`
-            });
+            return res.status(response.status).json({ error: `Google Sheets API error: ${response.status}` });
         }
         
+        let data;
         if (format === 'csv') {
-            const data = await response.text();
+            data = await response.text();
             res.setHeader('Content-Type', 'text/csv');
             return res.status(200).send(data);
         } else {
@@ -64,9 +55,6 @@ export default async function handler(req, res) {
         }
     } catch (error) {
         console.error('❌ Error fetching sheet:', error);
-        return res.status(500).json({ 
-            error: 'Failed to fetch sheet data',
-            message: error.message
-        });
+        return res.status(500).json({ error: 'Failed to fetch sheet data' });
     }
 }
