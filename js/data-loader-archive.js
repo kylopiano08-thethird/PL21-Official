@@ -1,7 +1,7 @@
 // js/data-loader-archive.js - PL21 Archive Data Loader
 const ARCHIVE_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
 
-// Function to parse CSV text properly
+// Function to parse CSV text properly (copied from your main data-loader)
 function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
@@ -24,7 +24,7 @@ function parseCSV(csvText) {
             current += char;
         }
     }
-    headers.push(current.trim().replace(/^"+|"+$/g, '')); // Add last header
+    headers.push(current.trim().replace(/^"+|"+$/g, ''));
     
     // Parse data rows
     const rows = [];
@@ -46,7 +46,7 @@ function parseCSV(csvText) {
                 current += char;
             }
         }
-        fields.push(current.trim().replace(/^"+|"+$/g, '')); // Add last field
+        fields.push(current.trim().replace(/^"+|"+$/g, ''));
         
         // Create object with headers as keys
         const row = {};
@@ -65,11 +65,13 @@ function parseCSV(csvText) {
     return rows;
 }
 
+// Fetch sheet using the SAME proxy approach as your main data-loader
 async function fetchSheet(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Directly fetch from the PL21 Google Sheet using the public CSV export URL
-        const url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&cb=${cacheBuster}`;
+        // Use the same /api/sheets proxy endpoint as your main data-loader
+        // But with the PL21 sheet ID
+        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&cb=${cacheBuster}`;
         
         console.log(`📡 Fetching ${sheetName} from PL21 sheet...`);
         
@@ -85,6 +87,18 @@ async function fetchSheet(sheetName) {
         console.warn(`Failed to load ${sheetName} from PL21 sheet:`, e);
         return [];
     }
+}
+
+// Helper function to find a value from an object using multiple possible keys
+function findValue(obj, possibleKeys) {
+    if (!obj || typeof obj !== 'object') return '';
+    
+    for (const key of possibleKeys) {
+        if (key && obj[key] !== undefined && obj[key] !== '' && obj[key] !== null) {
+            return obj[key];
+        }
+    }
+    return '';
 }
 
 function getFlagEmoji(country) {
@@ -121,7 +135,7 @@ function getFlagEmoji(country) {
 async function loadArchiveData() {
     console.log('📦 Loading PL21 archive data from sheet:', ARCHIVE_SHEET_ID);
 
-    // Fetch all sheets from the PL21 sheet
+    // Fetch all sheets from the PL21 sheet - using the same approach as your main data-loader
     const [
         driverMaster,
         driverMovement,
@@ -153,25 +167,24 @@ async function loadArchiveData() {
         sprintResults: sprintResults.length
     });
 
-    // ========== PROCESS TEAMS ==========
+    // ========== PROCESS TEAMS (copied from your main data-loader) ==========
     const teamMap = {};
     teamMaster.forEach((team, index) => {
-        const teamName = team['Team Name'] || team['Team'] || team['col0'] || '';
+        const teamName = findValue(team, ['Team Name', 'Team', 'col0']);
         if (!teamName) return;
         if (teamName.toLowerCase().includes('team') && teamName.toLowerCase().includes('name') && index === 0) return;
         if (teamName === 'Team Name' || teamName === 'Team' || teamName === 'Name') return;
         if (teamName.toLowerCase().includes('round')) return;
         
-        // Get car image from column F - try multiple possible column names
-        const carImage = team['Car Image'] || team['Car_Image'] || team['carImage'] || team['col5'] || team['Photo'] || team['photo'] || '';
+        const carImage = findValue(team, ['Car Image', 'Car_Image', 'carImage', 'col5', 'Photo', 'photo']);
         
         teamMap[teamName] = {
             id: teamName.toLowerCase().replace(/\s+/g, ''),
             name: teamName,
-            primaryColor: team['Primary Color'] || team['Primary'] || team['col1'] || '#860000',
-            secondaryColor: team['Secondary Color'] || team['Secondary'] || team['col2'] || '#000000',
-            owner: team['Team Owner'] || team['Owner'] || team['col3'] || 'TBA',
-            engineer: team['Engineer'] || team['col4'] || '',
+            primaryColor: findValue(team, ['Primary Color', 'Primary', 'col1']) || '#860000',
+            secondaryColor: findValue(team, ['Secondary Color', 'Secondary', 'col2']) || '#000000',
+            owner: findValue(team, ['Team Owner', 'Owner', 'col3']) || 'TBA',
+            engineer: findValue(team, ['Engineer', 'col4']) || '',
             carImage: carImage,
             drivers: [],
             totalPoints: 0,
@@ -181,34 +194,38 @@ async function loadArchiveData() {
             totalFastestLaps: 0
         };
     });
-    console.log('🏁 PL21 Teams loaded:', Object.keys(teamMap));
+    console.log('🏁 PL21 Teams loaded:', Object.keys(teamMap).length);
 
-    // ========== PROCESS DRIVER MOVEMENT ==========
+    // ========== PROCESS DRIVER MOVEMENT (copied from your main data-loader) ==========
     const driverTeamMap = {};
     driverMovement.forEach(row => {
-        const driver = row['Driver'] || row['col0'];
+        const driver = findValue(row, ['Driver', 'col0']);
         if (!driver) return;
         
         driverTeamMap[driver] = {
-            round1: row['Round 1'] || row['col1'] || '',
-            round2: row['Round 2'] || row['col2'] || '',
-            round3: row['Round 3'] || row['col3'] || '',
-            round4: row['Round 4'] || row['col4'] || '',
-            round5: row['Round 5'] || row['col5'] || '',
-            round6: row['Round 6'] || row['col6'] || '',
-            round7: row['Round 7'] || row['col7'] || '',
-            round8: row['Round 8'] || row['col8'] || '',
-            round9: row['Round 9'] || row['col9'] || '',
-            round10: row['Round 10'] || row['col10'] || '',
-            round11: row['Round 11'] || row['col11'] || '',
-            round12: row['Round 12'] || row['col12'] || ''
+            round1: findValue(row, ['Round 1', 'col1']) || '',
+            round2: findValue(row, ['Round 2', 'col2']) || '',
+            round3: findValue(row, ['Round 3', 'col3']) || '',
+            round4: findValue(row, ['Round 4', 'col4']) || '',
+            round5: findValue(row, ['Round 5', 'col5']) || '',
+            round6: findValue(row, ['Round 6', 'col6']) || '',
+            round7: findValue(row, ['Round 7', 'col7']) || '',
+            round8: findValue(row, ['Round 8', 'col8']) || '',
+            round9: findValue(row, ['Round 9', 'col9']) || '',
+            round10: findValue(row, ['Round 10', 'col10']) || '',
+            round11: findValue(row, ['Round 11', 'col11']) || '',
+            round12: findValue(row, ['Round 12', 'col12']) || ''
         };
     });
     console.log('🏁 PL21 Driver movement loaded:', Object.keys(driverTeamMap).length);
 
-    // ========== PROCESS DRIVERS ==========
-    const drivers = driverMaster.map(driver => {
-        const driverName = driver['Driver'] || driver['col0'];
+    // ========== PROCESS DRIVERS (copied from your main data-loader) ==========
+    const drivers = [];
+    driverMaster.forEach((driver, index) => {
+        const driverName = findValue(driver, ['Driver', 'col0']);
+        if (!driverName) return;
+        if (driverName.toLowerCase().includes('driver') && index === 0) return;
+        
         const movement = driverTeamMap[driverName] || {};
         
         let mostRecentTeam = '';
@@ -220,26 +237,26 @@ async function loadArchiveData() {
             }
         }
         const team = mostRecentTeam || movement.round1 || '';
-        const nationality = driver['Nationality'] || driver['col3'] || 'Unknown';
-        const driverPhoto = driver['Photo'] || driver['photo'] || driver['col4'] || '';
+        const nationality = findValue(driver, ['Nationality', 'col3']) || 'Unknown';
+        const driverPhoto = findValue(driver, ['Photo', 'photo', 'col4']) || '';
         
-        return {
-            id: driverName?.toLowerCase().replace(/\s+/g, ''),
-            name: driverName || 'Unknown',
-            short: driver['Shortened'] || driver['col1'] || '',
-            discord: driver['Discord'] || driver['col2'] || '',
+        drivers.push({
+            id: driverName.toLowerCase().replace(/\s+/g, ''),
+            name: driverName,
+            short: findValue(driver, ['Shortened', 'col1']) || '',
+            discord: findValue(driver, ['Discord', 'col2']) || '',
             nationality: nationality,
             flag: getFlagEmoji(nationality),
             photo: driverPhoto,
-            number: driver['Number'] || driver['col5'] || '0',
+            number: findValue(driver, ['Number', 'col5']) || '0',
             movement: movement,
             currentTeam: team,
             teamColor: teamMap[team]?.primaryColor || '#860000',
-            getTeamForRound: (round) => {
+            getTeamForRound: function(round) {
                 const roundKey = `round${round}`;
-                return movement[roundKey] || team;
+                return this.movement[roundKey] || this.currentTeam;
             }
-        };
+        });
     });
     console.log('🏎️ PL21 Drivers loaded:', drivers.length);
 
@@ -249,7 +266,7 @@ async function loadArchiveData() {
         if (team) team.drivers.push(driver);
     });
 
-    // ========== PROCESS CALENDAR ==========
+    // ========== PROCESS CALENDAR (copied from your main data-loader) ==========
     console.log('📅 Processing PL21 calendar data...');
     const calendar = [];
 
@@ -290,7 +307,7 @@ async function loadArchiveData() {
         console.log('📅 PL21 Sprint rounds:', sprintRoundsMap);
 
         raceKeys.forEach((key, index) => {
-            const raceInfo = key;
+            const raceInfo = String(raceNamesRow[key] || '');
             const roundMatch = raceInfo.match(/Round (\d+)/i);
             let roundNum = index + 1;
             if (roundMatch) roundNum = parseInt(roundMatch[1]);
@@ -299,6 +316,8 @@ async function loadArchiveData() {
             let dateStr = 'TBD';
             const dateMatch = raceInfo.match(/Round \d+\s+(.+)$/i);
             if (dateMatch) dateStr = dateMatch[1].trim();
+            
+            if (!raceName) raceName = `Round ${roundNum}`;
             
             const dateValue = raceNamesRow[key];
             let timeStr = '19:00';
@@ -315,7 +334,7 @@ async function loadArchiveData() {
             
             calendar.push({
                 round: roundNum,
-                name: raceName || `Round ${roundNum}`,
+                name: raceName,
                 date: dateStr,
                 time: timeStr,
                 laps: laps,
@@ -327,7 +346,7 @@ async function loadArchiveData() {
     }
     console.log('📅 PL21 Calendar loaded:', calendar.length);
 
-    // ========== PROCESS RESULTS ==========
+    // ========== PROCESS RESULTS (copied from your main data-loader) ==========
     console.log('🏁 Processing PL21 results...');
 
     const results = calendar.map(race => {
@@ -340,7 +359,7 @@ async function loadArchiveData() {
             
             for (let i = 1; i < sheet.length; i++) {
                 const row = sheet[i];
-                const driverName = row['col0'] || row['Driver'] || '';
+                const driverName = findValue(row, ['col0', 'Driver']);
                 if (!driverName) continue;
                 
                 const position = row[roundCol];
@@ -399,18 +418,26 @@ async function loadArchiveData() {
             return roundResults.sort((a, b) => (a.positionNumber || 999) - (b.positionNumber || 999));
         };
 
+        const raceResultsData = getRoundResults(raceResults, false);
+        const qualiResultsData = getRoundResults(qualiResults, false);
+        const sprintResultsData = hasSprint ? getRoundResults(sprintResults, true) : [];
+        
+        if (raceResultsData.length > 0) {
+            console.log(`🏁 Round ${race.round}: Race: ${raceResultsData.length}, Quali: ${qualiResultsData.length}, Sprint: ${sprintResultsData.length}`);
+        }
+
         return {
             round: race.round,
             name: race.name,
             date: race.date,
-            classification: getRoundResults(raceResults, false),
-            qualifying: getRoundResults(qualiResults, false),
-            sprint: hasSprint ? getRoundResults(sprintResults, true) : [],
+            classification: raceResultsData,
+            qualifying: qualiResultsData,
+            sprint: sprintResultsData,
             hasSprint: hasSprint
         };
     });
 
-    // ========== CALCULATE STANDINGS ==========
+    // ========== CALCULATE STANDINGS (copied from your main data-loader) ==========
     console.log('📊 Calculating PL21 standings...');
 
     Object.values(teamMap).forEach(team => {
@@ -493,6 +520,9 @@ async function loadArchiveData() {
 
     console.log('📊 PL21 Driver standings:', driverStandings.length);
     console.log('📊 PL21 Constructor standings:', constructorStandings.length);
+    if (driverStandings.length > 0) {
+        console.log('📊 Top driver:', driverStandings[0].name, driverStandings[0].points);
+    }
 
     // ========== BUILD FINAL DATA ==========
     const ARCHIVE_DATA = {
