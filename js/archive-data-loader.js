@@ -1,8 +1,15 @@
-// js/archive-data-loader.js - Data loader for archive page with new sheet
+// js/archive-data-loader.js - Data loader for archive page
+console.log('📦 archive-data-loader.js loaded');
+
 const ARCHIVE_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
 
 // Function to parse CSV text properly
 function parseCSV(csvText) {
+    if (!csvText || csvText.includes('<!DOCTYPE') || csvText.includes('<html') || csvText.includes('/*O_o*/')) {
+        console.warn('⚠️ Received HTML/error instead of CSV data');
+        return [];
+    }
+    
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
     
@@ -24,9 +31,15 @@ function parseCSV(csvText) {
     }
     headers.push(current.trim().replace(/^"+|"+$/g, ''));
     
+    if (headers.length === 0 || headers[0].includes('html')) {
+        return [];
+    }
+    
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
+        if (!line.trim()) continue;
+        
         const fields = [];
         current = '';
         inQuotes = false;
@@ -57,59 +70,133 @@ function parseCSV(csvText) {
     return rows;
 }
 
-async function fetchArchiveSheetAsCSV(sheetName) {
+async function fetchArchiveSheetViaVercel(sheetName, format = 'json') {
     try {
         const cacheBuster = Date.now();
-        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&cb=${cacheBuster}`;
-        console.log(`📡 Fetching ${sheetName} as CSV...`);
+        // Updated to use google-sheets-proxy
+        const url = `/api/google-sheets-proxy?sheet=${encodeURIComponent(sheetName)}&format=${format}&cb=${cacheBuster}`;
+        console.log(`📡 Fetching ${sheetName} via Vercel proxy (${format})...`);
+        
         const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const csvText = await res.text();
-        return parseCSV(csvText);
+        if (!res.ok) {
+            console.warn(`⚠️ Vercel proxy returned ${res.status}`);
+            return null;
+        }
+        
+        if (format === 'csv') {
+            const text = await res.text();
+            if (text && !text.includes('<!DOCTYPE') && !text.includes('<html')) {
+                return parseCSV(text);
+            }
+            return null;
+        } else {
+            const json = await res.json();
+            const cols = json.table.cols.map(c => c.label || '');
+            const rows = json.table.rows;
+            
+            const result = rows.map(row => {
+                const obj = {};
+                row.c.forEach((cell, index) => {
+                    if (cell && cell.v !== null) {
+                        const colName = cols[index] || `col${index}`;
+                        obj[colName] = cell.v;
+                    }
+                });
+                return obj;
+            }).filter(row => Object.keys(row).length > 0);
+            
+            if (result.length > 0) {
+                console.log(`✅ ${sheetName} loaded via Vercel proxy (${result.length} rows)`);
+                return result;
+            }
+            return null;
+        }
     } catch (e) {
-        console.warn(`Failed to load ${sheetName} as CSV:`, e);
-        return [];
+        console.warn(`❌ Vercel proxy failed for ${sheetName}:`, e.message);
+        return null;
     }
 }
 
-async function fetchArchiveSheetAsJSON(sheetName) {
+async function fetchArchiveSheetDirect(sheetName, format = 'csv') {
     try {
         const cacheBuster = Date.now();
-        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=json&cb=${cacheBuster}`;
-        console.log(`📡 Fetching ${sheetName} as JSON...`);
+        let url;
+        if (format === 'csv') {
+            url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/export?format=csv&id=${ARCHIVE_SHEET_ID}&sheet=${encodeURIComponent(sheetName)}&cache=${cacheBuster}`;
+        } else {
+            url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&cache=${cacheBuster}`;
+        }
+        
+        console.log(`📡 Fetching ${sheetName} directly (${format})...`);
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const json = await res.json();
-        const cols = json.table.cols.map(c => c.label || '');
-        const rows = json.table.rows;
         
-        return rows.map(row => {
-            const obj = {};
-            row.c.forEach((cell, index) => {
-                if (cell && cell.v !== null) {
-                    const colName = cols[index] || `col${index}`;
-                    obj[colName] = cell.v;
-                }
-            });
-            return obj;
-        }).filter(row => Object.keys(row).length > 0);
+        if (format === 'csv') {
+            const text = await res.text();
+            if (text && !text.includes('<!DOCTYPE') && !text.includes('<html')) {
+                return parseCSV(text);
+            }
+            return null;
+        } else {
+            const text = await res.text();
+            if (text.includes('/*O_o*/') || text.includes('<!DOCTYPE')) {
+                return null;
+            }
+            const jsonStr = text.replace(/^.*?\(/, '').replace(/\);$/, '');
+            const jsonData = JSON.parse(jsonStr);
+            const cols = jsonData.table.cols.map(c => c.label || '');
+            const rows = jsonData.table.rows;
+            
+            const result = rows.map(row => {
+                const obj = {};
+                row.c.forEach((cell, index) => {
+                    if (cell && cell.v !== null) {
+                        const colName = cols[index] || `col${index}`;
+                        obj[colName] = cell.v;
+                    }
+                });
+                return obj;
+            }).filter(row => Object.keys(row).length > 0);
+            
+            if (result.length > 0) {
+                console.log(`✅ ${sheetName} loaded directly (${result.length} rows)`);
+                return result;
+            }
+            return null;
+        }
     } catch (e) {
-        console.warn(`Failed to load ${sheetName} as JSON:`, e);
-        return [];
+        console.warn(`❌ Direct fetch failed for ${sheetName}:`, e.message);
+        return null;
     }
 }
 
 async function fetchArchiveSheet(sheetName) {
-    if (sheetName === 'Circuit Master') {
-        return await fetchArchiveSheetAsCSV(sheetName);
+    // Try Vercel proxy first
+    let data = await fetchArchiveSheetViaVercel(sheetName, 'json');
+    if (data && data.length > 0) {
+        return data;
     }
-    const jsonData = await fetchArchiveSheetAsJSON(sheetName);
-    if (jsonData && jsonData.length > 0) {
-        console.log(`✅ ${sheetName} loaded via JSON (${jsonData.length} rows)`);
-        return jsonData;
+    
+    // Try Vercel proxy as CSV
+    data = await fetchArchiveSheetViaVercel(sheetName, 'csv');
+    if (data && data.length > 0) {
+        return data;
     }
-    console.log(`⚠️ JSON fetch returned no data for ${sheetName}, trying CSV...`);
-    return await fetchArchiveSheetAsCSV(sheetName);
+    
+    // Try direct fetch as JSON
+    data = await fetchArchiveSheetDirect(sheetName, 'json');
+    if (data && data.length > 0) {
+        return data;
+    }
+    
+    // Try direct fetch as CSV
+    data = await fetchArchiveSheetDirect(sheetName, 'csv');
+    if (data && data.length > 0) {
+        return data;
+    }
+    
+    console.warn(`❌ All fetch methods failed for ${sheetName}`);
+    return [];
 }
 
 function getFlagEmoji(country) {
@@ -126,7 +213,7 @@ function getFlagEmoji(country) {
 }
 
 async function loadArchiveData() {
-    console.log('🚀 Loading archive data from new sheet...');
+    console.log('🚀 Loading archive data from sheet:', ARCHIVE_SHEET_ID);
 
     try {
         const [
@@ -164,8 +251,8 @@ async function loadArchiveData() {
         });
 
         if (driverMaster.length === 0) {
-            console.error('❌ No driver data found!');
-            return null;
+            console.error('❌ No driver data found! Check your sheet structure.');
+            return createFallbackData();
         }
 
         // ========== PROCESS TEAMS ==========
@@ -201,7 +288,7 @@ async function loadArchiveData() {
                 totalFastestLaps: 0
             };
         });
-        console.log('🏁 Teams loaded:', Object.keys(teamMap));
+        console.log('🏁 Teams loaded:', Object.keys(teamMap).length);
 
         // ========== PROCESS DRIVER MOVEMENT ==========
         const driverTeamMap = {};
@@ -490,7 +577,6 @@ async function loadArchiveData() {
                     
                     const driver = drivers.find(d => d.name === driverName);
                     if (!driver) {
-                        console.log(`⚠️ Driver not found: ${driverName}`);
                         continue;
                     }
                     
@@ -592,7 +678,6 @@ async function loadArchiveData() {
             race.classification.forEach(result => {
                 const teamName = result.team;
                 const team = teamMap[teamName];
-                
                 if (!team) return;
                 
                 if (!team.roundPoints[round]) team.roundPoints[round] = 0;
@@ -807,23 +892,71 @@ async function loadArchiveData() {
             }
         };
 
-        console.log('✅ Archive data loaded successfully');
+        console.log('✅ Archive data loaded successfully!');
+        console.log('📊 Data summary:', {
+            drivers: archiveData.drivers.length,
+            teams: archiveData.teams.length,
+            races: archiveData.results.length,
+            calendar: archiveData.calendar.length
+        });
         
-        // Store the data globally
         window.ARCHIVE_DATA = archiveData;
+        window.dispatchEvent(new CustomEvent('archive-data-ready', { detail: archiveData }));
         
         return archiveData;
     } catch (error) {
         console.error('❌ Error loading archive data:', error);
-        return null;
+        return createFallbackData();
     }
 }
 
+function createFallbackData() {
+    console.log('📄 Creating fallback data for display');
+    const fallbackData = {
+        drivers: [],
+        teams: [],
+        circuits: [],
+        calendar: [],
+        results: [],
+        news: [{ title: 'No Data', summary: 'Unable to load data from Google Sheets', link: '#', category: 'News' }],
+        dotd: null,
+        transferWindow: 'Closed',
+        standings: {
+            drivers: [],
+            constructors: []
+        },
+        statistics: {
+            overview: {
+                totalRaces: 0,
+                differentWinners: 0,
+                totalDrivers: 0,
+                totalTeams: 0
+            }
+        },
+        homepage: {
+            hero: {
+                title: 'No Data Available',
+                description: 'Please check your Google Sheet connection',
+                featuredDriver: null
+            },
+            stats: {
+                nextRace: { label: 'Next Race', value: 'TBD', detail: 'TBD' },
+                leader: { label: 'Championship Leader', value: 'TBD', detail: '0 pts' },
+                constructor: { label: "Constructor's", value: 'TBD', detail: '0 pts' },
+                progress: { label: 'Season Progress', value: '0/0', detail: '0% complete' }
+            },
+            news: [{ title: 'No Data', summary: 'Unable to load data from Google Sheets', link: '#', category: 'News' }]
+        }
+    };
+    
+    window.ARCHIVE_DATA = fallbackData;
+    window.dispatchEvent(new CustomEvent('archive-data-ready', { detail: fallbackData }));
+    return fallbackData;
+}
+
 // ========== EXPOSE GLOBALLY ==========
-// Make loadArchiveData available globally
 window.loadArchiveData = loadArchiveData;
 
-// Auto-load when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
         console.log('📄 DOM ready, loading archive data...');
@@ -833,3 +966,5 @@ if (document.readyState === 'loading') {
     console.log('📄 DOM already ready, loading archive data...');
     loadArchiveData();
 }
+
+console.log('📦 archive-data-loader.js initialized, loadArchiveData is available');
