@@ -1,7 +1,7 @@
 // js/data-loader-archive.js - PL21 Archive Data Loader
-const ARCHIVE_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
+const PL21_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
 
-// Function to parse CSV text properly
+// Function to parse CSV text properly (copied from main data-loader)
 function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
@@ -68,8 +68,8 @@ function parseCSV(csvText) {
 async function fetchSheet(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Directly fetch from Google Sheets using the public CSV export URL
-        const url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&cb=${cacheBuster}`;
+        // Use the API with sheetId parameter
+        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&sheetId=${PL21_SHEET_ID}&format=csv&cb=${cacheBuster}`;
         
         console.log(`📡 Fetching ${sheetName} from PL21 sheet...`);
         
@@ -133,9 +133,9 @@ function getFlagEmoji(country) {
 }
 
 async function loadArchiveData() {
-    console.log('📦 Loading PL21 archive data from sheet:', ARCHIVE_SHEET_ID);
+    console.log('📦 Loading PL21 archive data from sheet:', PL21_SHEET_ID);
 
-    // Fetch all sheets from the PL21 sheet
+    // Fetch all sheets from the PL21 sheet using the API with sheetId
     const [
         driverMaster,
         driverMovement,
@@ -366,7 +366,10 @@ async function loadArchiveData() {
                 if (!position || position === '') continue;
                 
                 const driver = drivers.find(d => d.name === driverName);
-                if (!driver) continue;
+                if (!driver) {
+                    console.log(`⚠️ Driver not found: ${driverName}`);
+                    continue;
+                }
                 
                 const teamForRound = driver.getTeamForRound(race.round);
                 let positionStr = position.toString();
