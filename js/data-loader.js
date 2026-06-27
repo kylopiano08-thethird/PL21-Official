@@ -1,6 +1,5 @@
 // js/data-loader.js - COMPLETE INTELLIGENT DATA LOADER with Vercel proxy
-const SHEET_ID = '1ECRV_5PiAFGBx9lfgKU_ZYdRSgUG4OpTEm9YzrxBvMI';
-// No external proxy needed - using our own Vercel function
+const SHEET_ID = '1ECRV_5PiAFGBx9lfgKU_ZYdRSgUG4OpTEm9YzrxBvMI'; // PL22 Current Season
 
 // Function to parse CSV text properly
 function parseCSV(csvText) {
@@ -69,8 +68,8 @@ function parseCSV(csvText) {
 async function fetchSheetAsCSV(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Use our own Vercel function
-        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&cb=${cacheBuster}`;
+        // Use the unified Vercel proxy with PL22 sheet ID
+        const url = `/api/sheets-proxy?sheet=${encodeURIComponent(sheetName)}&format=csv&sheetId=${SHEET_ID}&cb=${cacheBuster}`;
         
         console.log(`📡 Fetching ${sheetName} as CSV via proxy...`);
         
@@ -91,8 +90,8 @@ async function fetchSheetAsCSV(sheetName) {
 async function fetchSheetAsJSON(sheetName) {
     try {
         const cacheBuster = Date.now();
-        // Use our own Vercel function
-        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=json&cb=${cacheBuster}`;
+        // Use the unified Vercel proxy with PL22 sheet ID
+        const url = `/api/sheets-proxy?sheet=${encodeURIComponent(sheetName)}&format=json&sheetId=${SHEET_ID}&cb=${cacheBuster}`;
         
         console.log(`📡 Fetching ${sheetName} as JSON via proxy...`);
         
@@ -173,7 +172,7 @@ function getFlagEmoji(country) {
 }
 
 async function loadAllData() {
-    console.log('🚀 Loading PL21 data...');
+    console.log('🚀 Loading PL22 data...');
 
     // Fetch all sheets
     const [
@@ -1048,7 +1047,7 @@ async function loadAllData() {
     // ========== PROCESS NEWS ==========
     console.log('📰 Processing News Sheet - Total rows:', news.length);
 
-    let homepageTitle = 'PL21 Season';
+    let homepageTitle = 'PL22 Season';
     let homepageDescription = 'The season is underway!';
     let dotdDriver = null;
     let transferWindowStatus = 'Closed';
@@ -1066,7 +1065,7 @@ async function loadAllData() {
             console.log('📰 col3 (D) value:', metadataRow['col3']);
             console.log('📰 col4 (E) value:', metadataRow['col4']);
             
-            homepageTitle = metadataRow['col3'] || metadataRow['Homepage Title'] || 'PL21 Season';
+            homepageTitle = metadataRow['col3'] || metadataRow['Homepage Title'] || 'PL22 Season';
             homepageDescription = metadataRow['col4'] || metadataRow['Homepage Description'] || 'The season is underway!';
             
             // Get DOTD driver from column A (col0)
@@ -1137,7 +1136,7 @@ async function loadAllData() {
             console.log('📰 No news items found, creating placeholder');
             newsItems.push({
                 title: 'Latest News',
-                summary: 'Stay tuned for updates from the PL21 season.',
+                summary: 'Stay tuned for updates from the PL22 season.',
                 link: '#',
                 category: 'News'
             });
