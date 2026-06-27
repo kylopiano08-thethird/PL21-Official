@@ -1,10 +1,12 @@
 // js/data-loader-archive.js - PL21 Archive Data Loader
 const ARCHIVE_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
 
+// Function to parse CSV text properly
 function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
     
+    // Parse header - clean up quotes and split properly
     const headerLine = lines[0];
     const headers = [];
     let current = '';
@@ -12,6 +14,7 @@ function parseCSV(csvText) {
     
     for (let i = 0; i < headerLine.length; i++) {
         const char = headerLine[i];
+        
         if (char === '"') {
             inQuotes = !inQuotes;
         } else if (char === ',' && !inQuotes) {
@@ -21,8 +24,9 @@ function parseCSV(csvText) {
             current += char;
         }
     }
-    headers.push(current.trim().replace(/^"+|"+$/g, ''));
+    headers.push(current.trim().replace(/^"+|"+$/g, '')); // Add last header
     
+    // Parse data rows
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -32,6 +36,7 @@ function parseCSV(csvText) {
         
         for (let j = 0; j < line.length; j++) {
             const char = line[j];
+            
             if (char === '"') {
                 inQuotes = !inQuotes;
             } else if (char === ',' && !inQuotes) {
@@ -41,27 +46,39 @@ function parseCSV(csvText) {
                 current += char;
             }
         }
-        fields.push(current.trim().replace(/^"+|"+$/g, ''));
+        fields.push(current.trim().replace(/^"+|"+$/g, '')); // Add last field
         
+        // Create object with headers as keys
         const row = {};
         headers.forEach((header, index) => {
             let value = fields[index] || '';
+            // Try to convert numeric strings to numbers
             if (value && !isNaN(value) && value.trim() !== '') {
                 value = parseFloat(value);
             }
             row[header] = value;
         });
+        
         rows.push(row);
     }
+    
     return rows;
 }
 
-async function fetchSheetAsCSV(sheetName) {
+async function fetchSheet(sheetName) {
     try {
         const cacheBuster = Date.now();
-        const url = `https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&cb=${cacheBuster}`;
+        // Use the same proxy approach as the main data-loader
+        const url = `/api/sheets?sheet=${encodeURIComponent(sheetName)}&format=csv&cb=${cacheBuster}`;
+        
+        console.log(`📡 Fetching ${sheetName}...`);
+        
         const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
         const csvText = await res.text();
         return parseCSV(csvText);
     } catch (e) {
@@ -72,14 +89,30 @@ async function fetchSheetAsCSV(sheetName) {
 
 function getFlagEmoji(country) {
     const flags = {
-        'British': '🇬🇧', 'American': '🇺🇸', 'French': '🇫🇷',
-        'Serbian': '🇷🇸', 'Serbia': '🇷🇸', 'Dutch': '🇳🇱',
-        'German': '🇩🇪', 'Italian': '🇮🇹', 'Spanish': '🇪🇸',
-        'Finnish': '🇫🇮', 'Australian': '🇦🇺', 'Canadian': '🇨🇦',
-        'Japanese': '🇯🇵', 'Mexican': '🇲🇽', 'Brazilian': '🇧🇷',
-        'New Zealander': '🇳🇿', 'Irish': '🇮🇪', 'Belgian': '🇧🇪',
-        'Austrian': '🇦🇹', 'Swiss': '🇨🇭', 'Swedish': '🇸🇪',
-        'Danish': '🇩🇰', 'Polish': '🇵🇱', 'Hungarian': '🇭🇺',
+        'British': '🇬🇧',
+        'American': '🇺🇸',
+        'French': '🇫🇷',
+        'Serbian': '🇷🇸',
+        'Serbia': '🇷🇸',
+        'Dutch': '🇳🇱',
+        'German': '🇩🇪',
+        'Italian': '🇮🇹',
+        'Spanish': '🇪🇸',
+        'Finnish': '🇫🇮',
+        'Australian': '🇦🇺',
+        'Canadian': '🇨🇦',
+        'Japanese': '🇯🇵',
+        'Mexican': '🇲🇽',
+        'Brazilian': '🇧🇷',
+        'New Zealander': '🇳🇿',
+        'Irish': '🇮🇪',
+        'Belgian': '🇧🇪',
+        'Austrian': '🇦🇹',
+        'Swiss': '🇨🇭',
+        'Swedish': '🇸🇪',
+        'Danish': '🇩🇰',
+        'Polish': '🇵🇱',
+        'Hungarian': '🇭🇺',
         'Portuguese': '🇵🇹'
     };
     return flags[country] || '🏁';
@@ -88,15 +121,25 @@ function getFlagEmoji(country) {
 async function loadArchiveData() {
     console.log('📦 Loading PL21 archive data...');
 
-    const [driverMaster, driverMovement, teamMaster, circuitMaster, calendarRaw, raceResults, qualiResults, sprintResults] = await Promise.all([
-        fetchSheetAsCSV('Driver Master'),
-        fetchSheetAsCSV('Driver Movement'),
-        fetchSheetAsCSV('Team Master'),
-        fetchSheetAsCSV('Circuit Master'),
-        fetchSheetAsCSV('Calendar'),
-        fetchSheetAsCSV('Race Results'),
-        fetchSheetAsCSV('Quali Results'),
-        fetchSheetAsCSV('Sprint Results')
+    // Fetch all sheets using the same method as the main data-loader
+    const [
+        driverMaster,
+        driverMovement,
+        teamMaster,
+        circuitMaster,
+        calendarRaw,
+        raceResults,
+        qualiResults,
+        sprintResults
+    ] = await Promise.all([
+        fetchSheet('Driver Master'),
+        fetchSheet('Driver Movement'),
+        fetchSheet('Team Master'),
+        fetchSheet('Circuit Master'),
+        fetchSheet('Calendar'),
+        fetchSheet('Race Results'),
+        fetchSheet('Quali Results'),
+        fetchSheet('Sprint Results')
     ]);
 
     console.log('📊 Archive sheets loaded:', {
@@ -110,11 +153,14 @@ async function loadArchiveData() {
         sprintResults: sprintResults.length
     });
 
-    // Process Teams
+    // ========== PROCESS TEAMS ==========
     const teamMap = {};
     teamMaster.forEach((team, index) => {
         const teamName = team['Team Name'] || team['Team'] || team['col0'] || '';
-        if (!teamName || teamName.toLowerCase().includes('team')) return;
+        if (!teamName) return;
+        if (teamName.toLowerCase().includes('team') && teamName.toLowerCase().includes('name') && index === 0) return;
+        if (teamName === 'Team Name' || teamName === 'Team' || teamName === 'Name') return;
+        if (teamName.toLowerCase().includes('round')) return;
         
         teamMap[teamName] = {
             id: teamName.toLowerCase().replace(/\s+/g, ''),
@@ -122,6 +168,7 @@ async function loadArchiveData() {
             primaryColor: team['Primary Color'] || team['Primary'] || team['col1'] || '#860000',
             secondaryColor: team['Secondary Color'] || team['Secondary'] || team['col2'] || '#000000',
             owner: team['Team Owner'] || team['Owner'] || team['col3'] || 'TBA',
+            engineer: team['Engineer'] || team['col4'] || '',
             drivers: [],
             totalPoints: 0,
             totalWins: 0,
@@ -130,12 +177,14 @@ async function loadArchiveData() {
             totalFastestLaps: 0
         };
     });
+    console.log('🏁 Teams loaded:', Object.keys(teamMap));
 
-    // Process Driver Movement
+    // ========== PROCESS DRIVER MOVEMENT ==========
     const driverTeamMap = {};
     driverMovement.forEach(row => {
         const driver = row['Driver'] || row['col0'];
         if (!driver) return;
+        
         driverTeamMap[driver] = {
             round1: row['Round 1'] || row['col1'] || '',
             round2: row['Round 2'] || row['col2'] || '',
@@ -151,8 +200,9 @@ async function loadArchiveData() {
             round12: row['Round 12'] || row['col12'] || ''
         };
     });
+    console.log('🏁 Driver movement loaded:', Object.keys(driverTeamMap));
 
-    // Process Drivers
+    // ========== PROCESS DRIVERS ==========
     const drivers = driverMaster.map(driver => {
         const driverName = driver['Driver'] || driver['col0'];
         const movement = driverTeamMap[driverName] || {};
@@ -187,19 +237,24 @@ async function loadArchiveData() {
             }
         };
     });
+    console.log('🏎️ Drivers loaded:', drivers.length);
 
+    // Assign drivers to teams
     drivers.forEach(driver => {
         const team = teamMap[driver.currentTeam];
         if (team) team.drivers.push(driver);
     });
 
-    // Process Calendar
+    // ========== PROCESS CALENDAR ==========
+    console.log('📅 Processing calendar data...');
     const calendar = [];
+
     if (calendarRaw.length >= 3) {
         const raceNamesRow = calendarRaw[0];
         const lapsRow = calendarRaw[1];
         const raceKeys = Object.keys(raceNamesRow).filter(key => key !== 'Round Date' && key !== 'col0');
         
+        // Determine which rounds have results
         const roundsWithResults = new Set();
         if (raceResults && raceResults.length > 0) {
             for (let roundNum = 1; roundNum <= raceKeys.length; roundNum++) {
@@ -211,7 +266,9 @@ async function loadArchiveData() {
                 if (hasResults) roundsWithResults.add(roundNum);
             }
         }
+        console.log('📅 Rounds with results:', Array.from(roundsWithResults));
 
+        // Determine sprint rounds
         const sprintRoundsMap = {};
         if (sprintResults && sprintResults.length > 0) {
             const headerRow = sprintResults[0];
@@ -226,6 +283,7 @@ async function loadArchiveData() {
                 }
             });
         }
+        console.log('📅 Sprint rounds:', sprintRoundsMap);
 
         raceKeys.forEach((key, index) => {
             const raceInfo = key;
@@ -263,8 +321,11 @@ async function loadArchiveData() {
         });
         calendar.sort((a, b) => a.round - b.round);
     }
+    console.log('📅 Calendar loaded:', calendar.length);
 
-    // Process Results
+    // ========== PROCESS RESULTS ==========
+    console.log('🏁 Processing results...');
+
     const results = calendar.map(race => {
         const roundCol = `col${race.round}`;
         const hasSprint = race.hasSprint || false;
@@ -345,7 +406,9 @@ async function loadArchiveData() {
         };
     });
 
-    // Calculate Standings
+    // ========== CALCULATE STANDINGS ==========
+    console.log('📊 Calculating standings...');
+
     Object.values(teamMap).forEach(team => {
         team.roundPoints = {};
         team.roundWins = {};
@@ -424,6 +487,10 @@ async function loadArchiveData() {
         .sort((a, b) => b.totalPoints - a.totalPoints)
         .map((team, i) => ({ ...team, pos: i + 1 }));
 
+    console.log('📊 Driver standings:', driverStandings.length);
+    console.log('📊 Constructor standings:', constructorStandings.length);
+
+    // ========== BUILD FINAL DATA ==========
     const ARCHIVE_DATA = {
         drivers,
         teams: Object.values(teamMap).filter(t => t.drivers.length > 0),
