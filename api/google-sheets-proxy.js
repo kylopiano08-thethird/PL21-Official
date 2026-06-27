@@ -15,6 +15,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing sheet parameter' });
     }
     
+    // This is the PL21 (Previous Season) Sheet ID
     const SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
     
     try {

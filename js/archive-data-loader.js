@@ -1,6 +1,7 @@
 // js/archive-data-loader.js - Data loader for archive page
 console.log('📦 archive-data-loader.js loaded');
 
+// This is the PL21 (Previous Season) Sheet ID
 const ARCHIVE_SHEET_ID = '1BA9J14wUXfrjGUXlFrxYBqdZzAKIDrfQFgop_7FwfPg';
 
 // Function to parse CSV text properly
@@ -73,7 +74,6 @@ function parseCSV(csvText) {
 async function fetchArchiveSheetViaVercel(sheetName, format = 'json') {
     try {
         const cacheBuster = Date.now();
-        // Updated to use google-sheets-proxy
         const url = `/api/google-sheets-proxy?sheet=${encodeURIComponent(sheetName)}&format=${format}&cb=${cacheBuster}`;
         console.log(`📡 Fetching ${sheetName} via Vercel proxy (${format})...`);
         
