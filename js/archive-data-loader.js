@@ -395,7 +395,7 @@ async function loadArchiveData() {
             // Row 0 contains race names and dates
             const raceNamesRow = calendarRaw[0];
             // Row 1 contains laps (row 5 in the sheet)
-            const lapsRow = calendarRaw[1];
+            const lapsRow = calendarRaw[4];
             
             console.log('📅 Race names row:', raceNamesRow);
             console.log('📅 Laps row (row 1 / sheet row 5):', lapsRow);
