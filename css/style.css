@@ -75,7 +75,7 @@ nav {
 }
 
 .logo::after {
-    content: '2021';
+    content: '2022';
     position: absolute;
     top: -5px;
     right: -35px;
